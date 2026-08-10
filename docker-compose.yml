@@ -1,0 +1,11 @@
+services:
+  el-impostor:
+    build: .
+    ports:
+      - "3111:3111"
+    volumes:
+      - impostor-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  impostor-data:

@@ -19,8 +19,9 @@ const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 const ADMIN_USER = 'markel';
 const ADMIN_PASS = 'Markiton5_-?';
-const ADMIN_TOKEN_FILE = path.join(__dirname, 'admin-tokens.json');
-const ADMIN_CONFIG_FILE = path.join(__dirname, 'admin-config.json');
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const ADMIN_TOKEN_FILE = path.join(DATA_DIR, 'admin-tokens.json');
+const ADMIN_CONFIG_FILE = path.join(DATA_DIR, 'admin-config.json');
 
 const app = express();
 const server = http.createServer(app);
@@ -136,6 +137,7 @@ function loadAdminTokens() {
 
 function saveAdminTokens() {
   const data = Object.fromEntries([...adminTokens.entries()].filter(([, exp]) => exp > Date.now()));
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
   fs.writeFileSync(ADMIN_TOKEN_FILE, JSON.stringify(data), 'utf8');
 }
 
@@ -149,6 +151,7 @@ function loadAdminConfig() {
 }
 
 function saveAdminConfig(config) {
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
   fs.writeFileSync(ADMIN_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
 }
 
