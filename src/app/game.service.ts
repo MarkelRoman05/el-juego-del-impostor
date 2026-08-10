@@ -21,6 +21,7 @@ export class GameService {
   private readonly socket: Socket;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private rejoinInProgress = false;
+  private rejoinTimeout: ReturnType<typeof setTimeout> | undefined;
   private everConnected = false;
   private restoringSession = false;
 
@@ -31,11 +32,15 @@ export class GameService {
     this.socket = io();
     this.socket.on("connect", () => {
       this.connected.set(true);
+      clearTimeout(this.rejoinTimeout);
+      this.rejoinInProgress = false;
       if (!this.restoringSession) this.reconnecting.set(false);
       this.everConnected = true;
       this.rejoinOnce();
     });
     this.socket.on("disconnect", () => {
+      clearTimeout(this.rejoinTimeout);
+      this.rejoinInProgress = false;
       if (this.everConnected) this.reconnecting.set(true);
       this.connected.set(false);
     });
@@ -192,6 +197,9 @@ export class GameService {
     const session = this.loadSession();
     if (!session.code || !session.playerId || !session.name) return;
     this.rejoinInProgress = true;
+    this.rejoinTimeout = setTimeout(() => {
+      this.rejoinInProgress = false;
+    }, 10000);
     this.socket.emit(
       "room:join",
       {
@@ -200,15 +208,20 @@ export class GameService {
         playerId: session.playerId,
       },
       (res: Ack) => {
+        clearTimeout(this.rejoinTimeout);
         this.rejoinInProgress = false;
-        if (res?.error && /otra pestaña/.test(res.error) && attempt < 5) {
+        if (!res) return;
+        if (res.error && /otra pestaña/.test(res.error) && attempt < 5) {
           setTimeout(() => this.rejoinOnce(attempt + 1), 400 + attempt * 300);
           return;
         }
-        if (res?.error) {
+        if (res.error) {
           this.restoringSession = false;
           this.reconnecting.set(false);
-          if (!/otra pestaña/.test(res.error)) this.clearSession();
+          if (!/otra pestaña/.test(res.error)) {
+            this.clearSession();
+            this.reset();
+          }
         }
       },
     );
