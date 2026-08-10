@@ -22,16 +22,10 @@ cd "$PROJECT_DIR"
 
 # Pull latest changes
 echo "[$(date)] Pulling latest changes..." >> "$LOG_FILE"
+cd "$PROJECT_DIR"
 git pull origin main >> "$LOG_FILE" 2>&1
 
-# Bump cache version in index.html
-CURRENT_V=$(grep -o 'app\.js?v=[0-9]*' public/index.html | grep -o '[0-9]*' | head -1)
-NEW_V=$((CURRENT_V + 1))
-echo "[$(date)] Bumping cache version: v$CURRENT_V -> v$NEW_V" >> "$LOG_FILE"
-sed -i "s/app\.js?v=[0-9]*/app.js?v=$NEW_V/g" public/index.html
-sed -i "s/style\.css?v=[0-9]*/style.css?v=$NEW_V/g" public/index.html
-
-# Rebuild Docker image
+# Rebuild Docker image (Angular build happens inside Docker)
 echo "[$(date)] Rebuilding Docker image..." >> "$LOG_FILE"
 cd "$INFRA_DIR"
 docker compose build impostor >> "$LOG_FILE" 2>&1
