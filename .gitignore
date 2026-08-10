@@ -1,0 +1,21 @@
+node_modules/
+
+# Angular and build output
+dist/
+public/
+.angular/
+
+# Local configuration and runtime files
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+
+# Test and compiler output
+coverage/
+test-results/
+*.tsbuildinfo
+
+# OS metadata
+.DS_Store

@@ -1,0 +1,25 @@
+@if (game.reveal(); as reveal) {<section class="view active">
+    <h2><impostor-icon name="theater" /> Revelación</h2>
+    <div class="reveal-impostor">
+        <div class="impostor-emoji"><impostor-icon name="detective" /></div>
+        <div class="who">{{ reveal.impostors | names }}</div>
+        <div class="sub">{{ reveal.impostors.length > 1 ? 'Se las han apañado para fingir' : 'Fingía saber la palabra'
+            }}</div>
+    </div>
+    <div class="tally" *ngFor="let vote of reveal.votes; trackBy: trackVote">
+        <div class="tally-row"><span class="tally-name">{{ vote.name }}</span>
+            <div class="tally-track">
+                <div class="tally-bar" [style.width.%]="vote.count * 100 / (reveal.votes[0]?.count || 1)"></div>
+            </div><b>{{ vote.count }}</b>
+        </div>
+    </div>
+    <div class="word-box">
+        <p class="eyebrow">LA PALABRA ERA</p>
+        <div class="word">{{ reveal.word }}</div>
+        <div class="value">{{ reveal.category }}</div>
+    </div>
+    <p class="ballots" *ngIf="reveal.ballots.length">Votos: <span
+            *ngFor="let ballot of reveal.ballots; let last = last">{{ playerName(ballot.from) }} → {{
+            playerName(ballot.to) }}<ng-container *ngIf="!last"> · </ng-container></span></p><button
+        class="btn primary big" [disabled]="!isHost()" (click)="game.nextRound()">Siguiente ronda</button>
+</section>}

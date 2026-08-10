@@ -1,0 +1,19 @@
+<section class="view active">
+    <div class="round-top"><span class="chip">Ronda {{ game.role()?.round }}</span>@if (remaining()) {<span
+            class="timer">{{ remaining() }}</span>}</div>
+    <div class="hold-card" [class.revealed]="revealed()" (pointerdown)="holdStart($event)" (pointerleave)="holdEnd()"
+        (contextmenu)="$event.preventDefault()">
+        <div class="hold-idle">
+            <div class="lock"><impostor-icon name="lock" /></div>
+            <div class="hold-text">Mantén pulsado<br>para ver tu palabra</div>
+        </div>
+        <div class="secret-content">@if (game.role()?.role === 'impostor') {<div class="impostor-emoji"><impostor-icon name="detective" /></div>
+            <div class="impostor-title">¡ERES EL IMPOSTOR!</div>
+            <div class="impostor-sub">Finge que la sabes. Tu pista:</div>
+            <div class="category-chip big">{{ game.role()?.category }}</div>} @else {<div class="word">{{
+                game.role()?.word }}</div>
+            <div class="category-chip">Categoría: {{ game.role()?.category }}</div>}
+        </div>
+        <div class="hold-hint">Suelta para ocultar</div>
+    </div>@if (isHost()) {<button class="btn secondary" (click)="game.revealNow()">@if (game.room()?.config?.voting) {<impostor-icon name="ballot" /> Pasar a votación} @else {Revelar ahora}</button>}
+</section>

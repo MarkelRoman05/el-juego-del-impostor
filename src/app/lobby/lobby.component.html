@@ -1,0 +1,39 @@
+<section class="view active">
+    <div class="card lobby-card">
+        <div class="code-box">
+            <p class="eyebrow">CÓDIGO DE PARTIDA</p>
+            <div class="code">{{ game.room()?.code }}</div><button class="btn small" (click)="game.copyLink()"><impostor-icon name="clipboard" /> Copiar
+                enlace</button>
+        </div>
+        <div class="players"><span class="player-chip" [class.me]="player.id === game.me()"
+                [class.off]="!player.connected" *ngFor="let player of game.room()?.players; trackBy: trackPlayer"><i
+                    class="dot" [class.off]="!player.connected"></i>{{ player.name }} @if (player.id ===
+                game.room()?.hostId) {<b class="badge">HOST</b>} @if (isHost() && player.id !== game.me()) {<button
+                    class="kick" (click)="game.kick(player.id)" aria-label="Expulsar">×</button>}</span></div>
+        <div class="config">
+            <div class="config-row"><span><impostor-icon name="detective" /> Impostores</span>
+                <div class="stepper"><button [disabled]="!isHost() || game.room()!.config.impostors <= 1"
+                        (click)="setConfig('impostors', game.room()!.config.impostors - 1)">−</button><b>{{
+                        game.room()?.config?.impostors }}</b><button
+                        [disabled]="!isHost() || game.room()!.config.impostors >= maxImpostors()"
+                        (click)="setConfig('impostors', game.room()!.config.impostors + 1)">+</button></div>
+            </div>
+            <div class="config-row"><span><impostor-icon name="books" /> Categoría</span><select [disabled]="!isHost()"
+                    [ngModel]="game.room()?.config?.category" (ngModelChange)="setConfig('category', $event)">
+                    <option *ngFor="let category of categories" [value]="category[0]">{{ category[1] }}</option>
+                </select></div>@if (game.room()?.config?.customWordsCount) {<div class="config-row"><span><impostor-icon name="pencil" /> Palabras
+                    propias</span><b class="value">{{ game.room()?.config?.customWordsCount }} en juego</b></div>}<div
+                class="config-row"><span><impostor-icon name="timer" /> Tiempo de debate</span><select [disabled]="!isHost()"
+                    [ngModel]="game.room()?.config?.timer" (ngModelChange)="setConfig('timer', +$event)">
+                    <option *ngFor="let timer of timers" [value]="timer.value">{{ timer.label }}</option>
+                </select></div>
+            <div class="config-row"><span><impostor-icon name="ballot" /> Votación</span><label class="switch"><input type="checkbox"
+                        [disabled]="!isHost()" [ngModel]="game.room()?.config?.voting"
+                        (ngModelChange)="setConfig('voting', $event)"><i></i></label></div>
+        </div><button class="btn primary big" [disabled]="!isHost() || connectedPlayers() < 3" (click)="game.start()"><impostor-icon name="play" />
+            Empezar ronda</button>
+        <p class="hint">@if (!isHost()) { Esperando al anfitrión… } @else if (connectedPlayers() < 3) { Hacen falta al
+                menos 3 jugadores } @else { {{ connectedPlayers() }} jugadores listos }</p><button class="btn ghost"
+                    (click)="game.leave()">Salir de la partida</button>
+    </div>
+</section>
