@@ -1,13 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   HostListener,
   inject,
   signal,
 } from "@angular/core";
 import { GameService } from "../game.service";
-import { formatGameTime } from "../game-time";
 import { IconComponent } from "../icon/icon.component";
 
 @Component({
@@ -20,22 +18,11 @@ import { IconComponent } from "../icon/icon.component";
 export class RoundComponent {
   readonly game = inject(GameService);
   readonly revealed = signal(false);
-  private readonly now = signal(Date.now());
-  private readonly timer = setInterval(() => this.now.set(Date.now()), 500);
-
-  constructor() {
-    inject(DestroyRef).onDestroy(() => clearInterval(this.timer));
-  }
   isHost(): boolean {
     return this.game.me() === this.game.room()?.hostId;
   }
-  remaining(): string {
-    const role = this.game.role();
-    return !role || role.timer <= 0
-      ? ""
-      : formatGameTime(
-          this.game.roundStartedAt() + role.timer * 1000 - this.now(),
-        );
+  isHintEnabled(): boolean {
+    return this.game.room()?.config.impostorHint === true;
   }
   holdStart(event: Event): void {
     event.preventDefault();
@@ -43,6 +30,11 @@ export class RoundComponent {
   }
   holdEnd(): void {
     this.revealed.set(false);
+  }
+  leaveRound(): void {
+    if (window.confirm("¿Salir de la partida? Esta acción no se puede deshacer.")) {
+      this.game.leaveRound();
+    }
   }
   @HostListener("window:pointerup") onPointerUp(): void {
     this.holdEnd();

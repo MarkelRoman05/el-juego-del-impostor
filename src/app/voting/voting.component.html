@@ -2,9 +2,8 @@
     <h2><impostor-icon name="ballot" /> Votación</h2>
     <p class="subtitle">¿Quién crees que es el impostor?</p>
     <div class="timer vote-timer"><impostor-icon name="hourglass" /> {{ remaining() }}</div>
-    <div class="vote-list"><button class="vote-btn" [class.picked]="game.votedFor() === player.id"
-            [disabled]="!!game.votedFor()" *ngFor="let player of game.room()?.players; trackBy: trackPlayer"
-            [hidden]="!canVote(player)" (click)="game.vote(player.id)">{{ player.name }} <span><impostor-icon name="check" /> Votado</span></button>
+    <div class="vote-list"><ng-container *ngFor="let player of game.room()?.players; trackBy: trackPlayer">@if (canVote(player)) {<button class="vote-btn" [class.picked]="game.votedFor() === player.id"
+            [disabled]="!!game.votedFor()" (click)="game.vote(player.id)">{{ player.name }} <span><impostor-icon name="check" /> Votado</span></button>}</ng-container>
     </div>
     <p class="hint">{{ game.votedFor() ? 'Voto registrado. Esperando al resto…' : 'Elige a un jugador' }}</p>@if
     (isHost()) {<button class="btn secondary" (click)="game.revealNow()">Revelar ahora</button>}

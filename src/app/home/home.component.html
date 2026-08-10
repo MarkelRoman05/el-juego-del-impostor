@@ -1,12 +1,10 @@
 <section class="view active home-view">
   <header class="hero">
     <div class="logo"><impostor-icon name="detective" /></div>
-    <p class="eyebrow">JUEGO SOCIAL EN TIEMPO REAL</p>
-    <h1>El impostor</h1>
-    <p class="tagline">Todos conocen la palabra. Solo una persona tendrá que fingir.</p>
+    <h1>El Impostor</h1>
   </header>
   <div class="card form-card">
-    <label for="name">Tu nombre</label><input id="name" [(ngModel)]="name" maxlength="20" placeholder="Ej: Markel"
+    <label for="name">Tu nombre</label><input id="name" [(ngModel)]="name" maxlength="20" placeholder="Escribe un nombre..."
       autocomplete="off" (keydown.enter)="create()">
     <button class="btn primary big" (click)="create()"><impostor-icon name="game" /> Crear partida</button>
     <div class="divider"><span>o únete con un código</span></div>
@@ -14,7 +12,8 @@
         placeholder="CÓDIGO" aria-label="Código de partida" autocomplete="off" (keydown.enter)="join()"><button
         class="btn secondary" (click)="join()">Unirse</button></div>
     <details class="words-box" [open]="wordsOpen" (toggle)="wordsOpen = !wordsOpen">
-      <summary><impostor-icon name="note" /> Palabras personalizadas <span class="words-badge" [class.hidden]="!game.wordsCount(words)">({{
+      <summary><impostor-icon name="note" /> Palabras personalizadas <span class="words-badge"
+          [class.hidden]="!game.wordsCount(words)">({{
           game.wordsCount(words) }})</span></summary>
       <p class="hint">Añade palabras privadas. La partida mezcla las listas y elige una al azar.</p><textarea
         [(ngModel)]="words" (ngModelChange)="updateWords()" maxlength="2000"

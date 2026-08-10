@@ -9,7 +9,7 @@
   }
 </main>
 @if (game.toast()) { <div class="toast" role="status">{{ game.toast() }}</div> }
-@if (!game.connected()) { <div class="conn-overlay">
+@if (game.reconnecting()) { <div class="conn-overlay">
     <div class="big-emoji"><impostor-icon name="plug" /></div>
   <p>Reconectando…</p>
 </div> }

@@ -92,7 +92,7 @@ async function main() {
   check('nombre duplicado rechazado', !res.ok && !!res.error, JSON.stringify(res));
 
   /* 3. config: 2 impostores + palabras personalizadas + sin temporizador */
-  res = await emitAckP(host, 'config:set', { impostors: 2, category: 'animales', customWords: 'volcán\ncascada\narcoíris', timer: 0, voting: true });
+  res = await emitAckP(host, 'config:set', { impostors: 2, category: 'animales', customWords: 'volcán\ncascada\narcoíris', timer: 0, voting: true, impostorHint: true });
   check('config:set ok', res.ok === true, JSON.stringify(res));
 
   /* 4. empezar ronda — waiters ANTES del disparo */

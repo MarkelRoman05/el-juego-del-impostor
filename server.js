@@ -14,7 +14,6 @@ const VOTE_TIME_MS = 60_000;
 const ROOM_MAX_AGE_MS = 2 * 60 * 60 * 1000;   // una sala vive 2h desde la última actividad
 const EMPTY_ROOM_TTL_MS = 10 * 60 * 1000;     // y se borra 10min después de quedarse vacía
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const TIMER_OPTIONS = [0, 30, 60, 120, 180];
 
 const app = express();
 const server = http.createServer(app);
@@ -76,7 +75,7 @@ function createRoom(hostId, hostName) {
     phase: 'lobby',           // lobby | round | voting | reveal
     round: 0,
     players: new Map(),       // id -> { id, name, connected }
-    config: { impostors: 1, category: 'animales', customWords: '', timer: 120, voting: true },
+    config: { impostors: 1, category: 'animales', customWords: '', timer: 0, voting: true, impostorHint: false },
     word: null,
     categoryLabel: null,
     impostorIds: null,        // Set<id>
@@ -120,6 +119,7 @@ function serializeRoom(room) {
       category: room.config.category,
       timer: room.config.timer,
       voting: room.config.voting,
+      impostorHint: room.config.impostorHint,
       // Privacidad: las palabras personalizadas NUNCA se serializan; solo su número
       customWordsCount: parseCustomWords(room.config.customWords).length,
     },
@@ -198,28 +198,14 @@ function startRound(room) {
   // Entrega privada: cada jugador recibe SOLO su rol
   for (const p of connected) {
     const payload = impostorIds.has(p.id)
-      ? { role: 'impostor', category: categoryLabel, round: room.round, timer: room.config.timer }
-      : { role: 'player', word, category: categoryLabel, round: room.round, timer: room.config.timer };
+      ? { role: 'impostor', category: room.config.impostorHint ? categoryLabel : '', round: room.round, timer: 0 }
+      : { role: 'player', word, category: categoryLabel, round: room.round, timer: 0 };
     room.roleByPlayer.set(p.id, payload);
     const sock = io.sockets.sockets.get(p.id);
     if (sock) sock.emit('round:started', payload);
   }
 
   setPhase(room, 'round', { startedAt: room.startedAt });
-  if (room.config.timer > 0) {
-    scheduleAdvance(room, room.config.timer * 1000, () => afterDiscussion(room));
-  }
-}
-
-function afterDiscussion(room) {
-  if (room.phase !== 'round') return;
-  if (room.config.voting) {
-    room.votingDeadlineAt = Date.now() + VOTE_TIME_MS;
-    setPhase(room, 'voting', { deadlineAt: room.votingDeadlineAt });
-    scheduleAdvance(room, VOTE_TIME_MS, () => doReveal(room));
-  } else {
-    doReveal(room);
-  }
 }
 
 function expectedVoters(room) {
@@ -266,6 +252,18 @@ function resetToLobby(room) {
   room.votingDeadlineAt = 0;
   broadcastLobby(room);
   io.to(room.code).emit('phase:changed', { phase: 'lobby' });
+}
+
+function endRoom(room) {
+  clearAdvance(room);
+  io.to(room.code).emit('game:ended');
+  for (const playerSocket of io.sockets.sockets.values()) {
+    if (playerSocket.data.roomCode !== room.code) continue;
+    playerSocket.data.roomCode = null;
+    playerSocket.data.playerId = null;
+    playerSocket.leave(room.code);
+  }
+  rooms.delete(room.code);
 }
 
 /* ------------------------------------------------------------------ */
@@ -370,9 +368,6 @@ io.on('connection', (socket) => {
     // Reconexión del mismo jugador (recarga de página / caída de red)
     if (playerId && room.players.has(playerId)) {
       const p = room.players.get(playerId);
-      if (p.connected && p.name === clean) {
-        return ackErr(ack, 'Ese jugador ya está conectado en otra pestaña');
-      }
       const taken = [...room.players.values()].some(
         (x) => x.id !== playerId && x.name.toLowerCase() === clean.toLowerCase()
       );
@@ -381,7 +376,7 @@ io.on('connection', (socket) => {
       // expulsar el socket antiguo para no dejar jugadores fantasma
       const oldSock = io.sockets.sockets.get(playerId);
       if (oldSock && oldSock.id !== socket.id) {
-        oldSock.emit('kicked');
+        oldSock.emit('session:replaced');
         oldSock.leave(room.code);
         oldSock.data.roomCode = null;
         oldSock.data.playerId = null;
@@ -422,7 +417,27 @@ io.on('connection', (socket) => {
     broadcastLobby(room);
   });
 
-  socket.on('lobby:leave', leaveRoom);
+  socket.on('lobby:leave', (ack) => {
+    const room = getRoomOf(socket);
+    if (room && isHost(socket, room)) {
+      endRoom(room);
+      return ackOk(ack);
+    }
+    leaveRoom();
+    ackOk(ack);
+  });
+  socket.on('round:leave', (ack) => {
+    const room = getRoomOf(socket);
+    if (!room || !socket.data.playerId) return ackErr(ack, 'No estás en una partida');
+    if (room.phase !== 'round') return ackErr(ack, 'Solo puedes salir durante la ronda');
+    if (isHost(socket, room)) {
+      endRoom(room);
+      return ackOk(ack);
+    }
+    leaveRoom();
+    socket.emit('game:ended');
+    ackOk(ack);
+  });
   socket.on('disconnect', leaveRoom);
 
   /* ---- lobby: configuración y expulsiones ---- */
@@ -440,8 +455,8 @@ io.on('connection', (socket) => {
     }
     if (typeof cfg.category !== 'undefined' && CATEGORIES[cfg.category]) room.config.category = cfg.category;
     if (typeof cfg.customWords === 'string') room.config.customWords = cfg.customWords.slice(0, 2000);
-    if (typeof cfg.timer !== 'undefined' && TIMER_OPTIONS.includes(Number(cfg.timer))) room.config.timer = Number(cfg.timer);
     if (typeof cfg.voting !== 'undefined') room.config.voting = cfg.voting !== false;
+    if (typeof cfg.impostorHint !== 'undefined') room.config.impostorHint = cfg.impostorHint === true;
     room.lastActivity = Date.now();
     broadcastLobby(room);
     ackOk(ack);

@@ -45,6 +45,12 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
   const r = await emitAck(host, 'round:start');
   check('round:start ok', r.ok === true, JSON.stringify(r));
   await startedP;
+  let autoVoting = false;
+  const autoPhase = (data) => { if (data?.phase === 'voting') autoVoting = true; };
+  host.on('phase:changed', autoPhase);
+  await wait(1200);
+  host.off('phase:changed', autoPhase);
+  check('la ronda no pasa a votación por tiempo', autoVoting === false);
 
   // test 1: nuevo jugador intenta entrar a mitad de ronda
   const p3 = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });

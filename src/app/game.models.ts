@@ -18,6 +18,7 @@ export interface RoomConfig {
   customWordsCount: number;
   timer: number;
   voting: boolean;
+  impostorHint: boolean;
 }
 export interface Room {
   code: string;

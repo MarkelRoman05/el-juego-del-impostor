@@ -9,7 +9,7 @@
       "prefix": "impostor",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular/build:application",
           "options": {
             "outputPath": "dist/el-impostor",
             "index": "src/index.html",
@@ -28,9 +28,12 @@
           },
           "defaultConfiguration": "production"
         },
-        "serve": { "builder": "@angular-devkit/build-angular:dev-server", "configurations": { "production": { "buildTarget": "el-impostor:build:production" }, "development": { "buildTarget": "el-impostor:build:development" } }, "defaultConfiguration": "development" },
+        "serve": { "builder": "@angular/build:dev-server", "options": { "proxyConfig": "proxy.conf.json" }, "configurations": { "production": { "buildTarget": "el-impostor:build:production" }, "development": { "buildTarget": "el-impostor:build:development" } }, "defaultConfiguration": "development" },
         "test": { "builder": "@angular/build:unit-test", "options": { "tsConfig": "tsconfig.spec.json" } }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }

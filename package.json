@@ -5,7 +5,8 @@
   "description": "Juego de mesa El Impostor (estilo Chameleon) multijugador en tiempo real",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "npm run build && node server.js",
+    "dev": "node scripts/dev.js",
     "build": "ng build",
     "test:client": "ng test --watch=false --browsers=ChromeHeadless"
   },
@@ -26,7 +27,7 @@
     "zone.js": "^0.15.1"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^22.1.3",
+    "@angular/build": "^22.1.3",
     "@angular/cli": "^22.1.3",
     "@angular/compiler-cli": "^22.1.1",
     "jsdom": "^30.0.1"

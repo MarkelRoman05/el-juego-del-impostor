@@ -4,7 +4,8 @@
 
 - Node.js `>=22.22.3` is required by Angular 22; use the same requirement locally and in Docker.
 - Install dependencies with `npm install`; `package-lock.json` is committed and must stay in sync with `package.json`.
-- `npm run build` is required before `npm start`; Angular outputs the browser bundle to `dist/el-impostor/browser`.
+- `npm start` builds Angular and then starts Express; Angular outputs the browser bundle to `dist/el-impostor/browser`.
+- Use `npm run dev` to start both Express (`:3111`) and Angular with the Socket.IO proxy; use `npx ng serve` only when the backend is already running. `ng dev` is not an Angular CLI command.
 - Express serves `dist/el-impostor/browser` from `server.js`; do not put source files or generated bundles back in `public/`.
 - `dist/`, `public/`, `.angular/`, and `node_modules/` are generated or local-only and are ignored.
 - `Dockerfile` builds Angular inside the image, then prunes dev dependencies; keep `src`, `angular.json`, and TypeScript configs available to the build stage.

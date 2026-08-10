@@ -19,13 +19,6 @@ const CATEGORIES: Record<string, string> = {
   musica: "Música",
   mezcla: "Mezcla",
 };
-const TIMERS = [
-  { value: 0, label: "Sin límite" },
-  { value: 30, label: "30 s" },
-  { value: 60, label: "1 min" },
-  { value: 120, label: "2 min" },
-  { value: 180, label: "3 min" },
-];
 
 @Component({
   selector: "impostor-lobby",
@@ -37,7 +30,6 @@ const TIMERS = [
 export class LobbyComponent {
   readonly game = inject(GameService);
   readonly categories = Object.entries(CATEGORIES);
-  readonly timers = TIMERS;
   isHost(): boolean {
     return this.game.me() === this.game.room()?.hostId;
   }

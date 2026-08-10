@@ -15,24 +15,40 @@ export class GameService {
   readonly votedFor = signal<string | null>(null);
   readonly votingDeadline = signal(0);
   readonly roundStartedAt = signal(0);
-  readonly connected = signal(true);
+  readonly connected = signal(false);
+  readonly reconnecting = signal(false);
   readonly toast = signal("");
 
   private readonly socket: Socket;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
-  private reconnecting = false;
+  private rejoinInProgress = false;
+  private everConnected = false;
+  private restoringSession = false;
 
   constructor() {
+    const session = this.loadSession();
+    this.restoringSession = Boolean(session.code && session.playerId && session.name);
+    this.reconnecting.set(this.restoringSession);
     this.socket = io();
     this.socket.on("connect", () => {
       this.connected.set(true);
+      if (!this.restoringSession) this.reconnecting.set(false);
+      this.everConnected = true;
       this.rejoinOnce();
     });
-    this.socket.on("disconnect", () => this.connected.set(false));
-    this.socket.on("connect_error", () => this.connected.set(false));
+    this.socket.on("disconnect", () => {
+      if (this.everConnected) this.reconnecting.set(true);
+      this.connected.set(false);
+    });
+    this.socket.on("connect_error", () => {
+      if (this.everConnected) this.reconnecting.set(true);
+      this.connected.set(false);
+    });
     this.socket.on(
       "room:joined",
       ({ room, me }: { room: Room; me: string }) => {
+        this.restoringSession = false;
+        this.reconnecting.set(false);
         this.room.set(room);
         this.me.set(me);
         this.phase.set(this.phaseFor(room.phase));
@@ -75,6 +91,12 @@ export class GameService {
       this.reset();
       this.notify("Te han expulsado de la partida");
     });
+    this.socket.on("session:replaced", () => this.socket.disconnect());
+    this.socket.on("game:ended", () => {
+      this.clearSession();
+      this.reset();
+      this.notify("La partida ha terminado");
+    });
     this.rejoinOnce();
   }
 
@@ -114,6 +136,11 @@ export class GameService {
   revealNow(): void {
     this.socket.emit("round:reveal");
   }
+  leaveRound(): void {
+    this.socket.emit("round:leave", (res: Ack) => {
+      if (res?.error) this.notify(res.error);
+    });
+  }
   nextRound(): void {
     this.socket.emit("round:next");
   }
@@ -142,10 +169,17 @@ export class GameService {
       .then(() => this.notify("Enlace copiado"))
       .catch(() => window.prompt("Copia el enlace:", url));
   }
+  copyCode(): void {
+    const code = this.room()?.code ?? "";
+    navigator.clipboard
+      ?.writeText(code)
+      .then(() => this.notify("Código copiado"))
+      .catch(() => window.prompt("Copia el código:", code));
+  }
   notify(message: string): void {
     this.toast.set(message);
     clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => this.toast.set(""), 3500);
+    this.toastTimer = setTimeout(() => this.toast.set(""), 4000);
   }
   loadWords(): string {
     try {
@@ -176,11 +210,11 @@ export class GameService {
       ? (value as Phase)
       : "waiting";
   }
-  private rejoinOnce(): void {
-    if (this.reconnecting) return;
+  private rejoinOnce(attempt = 0): void {
+    if (this.rejoinInProgress) return;
     const session = this.loadSession();
     if (!session.code || !session.playerId || !session.name) return;
-    this.reconnecting = true;
+    this.rejoinInProgress = true;
     this.socket.emit(
       "room:join",
       {
@@ -190,8 +224,16 @@ export class GameService {
         customWords: this.loadWords(),
       },
       (res: Ack) => {
-        this.reconnecting = false;
-        if (res?.error && !/otra pestaña/.test(res.error)) this.clearSession();
+        this.rejoinInProgress = false;
+        if (res?.error && /otra pestaña/.test(res.error) && attempt < 5) {
+          setTimeout(() => this.rejoinOnce(attempt + 1), 400 + attempt * 300);
+          return;
+        }
+        if (res?.error) {
+          this.restoringSession = false;
+          this.reconnecting.set(false);
+          if (!/otra pestaña/.test(res.error)) this.clearSession();
+        }
       },
     );
   }

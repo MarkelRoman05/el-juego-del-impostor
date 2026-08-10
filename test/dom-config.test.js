@@ -16,7 +16,9 @@ const check = (label, ok) => { console.log(`${ok ? '✅' : '❌'} ${label}`); if
 check('index servido por Angular', index.includes('<impostor-root>') && !index.includes('/app.js'));
 check('la palabra solo se muestra al rol player', round.includes("game.role()?.role === 'impostor'") && round.includes('game.role()?.word'));
 check('el estado de roles vive en señales Angular', service.includes("readonly role = signal<RolePayload | null>(null)"));
-check('la reconexión se centraliza en un único intento', service.includes('private reconnecting = false') && service.includes('rejoinOnce()'));
+check('la reconexión se centraliza en un único intento', service.includes('private rejoinInProgress = false') && service.includes('rejoinOnce()'));
+check('la sesión local se intenta recuperar automáticamente', service.includes('const session = this.loadSession()') && service.includes('session.playerId'));
+check('la recarga reintenta si el socket anterior sigue conectado', service.includes('/otra pestaña/') && service.includes('attempt < 5'));
 check('la interfaz no usa innerHTML', !html.includes('innerHTML'));
 
 console.log(fails === 0 ? '\n✅ TODO OK' : `\n❌ ${fails} fallos`);

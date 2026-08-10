@@ -18,12 +18,14 @@ export class HomeComponent {
   wordsOpen = false;
 
   create(): void {
-    if (!this.name.trim()) return this.game.notify("Escribe tu nombre primero");
+    if (!this.name.trim())
+      return this.game.notify("Escribe tu nombre para crear una partida");
     this.game.create(this.name.trim(), this.words);
   }
 
   join(): void {
-    if (!this.name.trim()) return this.game.notify("Escribe tu nombre primero");
+    if (!this.name.trim())
+      return this.game.notify("Escribe tu nombre para unirte");
     if (!/^[A-Z0-9]{4}$/.test(this.code))
       return this.game.notify("El código tiene 4 letras o números");
     this.game.join(this.code, this.name.trim(), this.words);
