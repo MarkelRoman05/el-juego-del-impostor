@@ -1,15 +1,18 @@
-<main class="shell">
-  @switch (game.phase()) {
-  @case ('home') { <impostor-home /> }
-  @case ('lobby') { <impostor-lobby /> }
-  @case ('round') { <impostor-round /> }
-  @case ('voting') { <impostor-voting /> }
-  @case ('reveal') { <impostor-reveal /> }
-  @case ('waiting') { <impostor-waiting /> }
-  }
-</main>
-@if (game.toast()) { <div class="toast" role="status">{{ game.toast() }}</div> }
-@if (game.reconnecting()) { <div class="conn-overlay">
-    <div class="big-emoji"><impostor-icon name="plug" /></div>
-  <p>Reconectando…</p>
-</div> }
+<router-outlet />
+@if (!isAdmin()) {
+  <main class="shell">
+    @switch (game.phase()) {
+    @case ('home') { <impostor-home /> }
+    @case ('lobby') { <impostor-lobby /> }
+    @case ('round') { <impostor-round /> }
+    @case ('voting') { <impostor-voting /> }
+    @case ('reveal') { <impostor-reveal /> }
+    @case ('waiting') { <impostor-waiting /> }
+    }
+  </main>
+  @if (game.toast()) { <div class="toast" role="status">{{ game.toast() }}</div> }
+  @if (game.reconnecting()) { <div class="conn-overlay">
+      <div class="big-emoji"><impostor-icon name="plug" /></div>
+    <p>Reconectando…</p>
+  </div> }
+}

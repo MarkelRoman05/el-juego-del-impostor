@@ -2,7 +2,11 @@
     <div class="card lobby-card">
         <div class="code-box">
             <p class="eyebrow">CÓDIGO DE PARTIDA</p>
-            <div class="code">{{ game.room()?.code }}</div><button class="btn small" (click)="game.copyCode()"><impostor-icon name="clipboard" /> Copiar código</button>
+            <div class="code">{{ game.room()?.code }}</div>
+            <div class="code-actions">
+                <button class="btn small" (click)="game.copyCode()"><impostor-icon name="clipboard" /> Copiar código</button>
+                <button class="btn small" (click)="game.copyLink()"><impostor-icon name="share" /> Copiar enlace</button>
+            </div>
         </div>
         <div class="players"><span class="player-chip" [class.me]="player.id === game.me()"
                 [class.off]="!player.connected" *ngFor="let player of game.room()?.players; trackBy: trackPlayer"><i
@@ -17,11 +21,10 @@
                         [disabled]="!isHost() || game.room()!.config.impostors >= maxImpostors()"
                         (click)="setConfig('impostors', game.room()!.config.impostors + 1)">+</button></div>
             </div>
-            <div class="config-row"><span><impostor-icon name="books" /> Categoría</span><select [disabled]="!isHost()"
-                    [ngModel]="game.room()?.config?.category" (ngModelChange)="setConfig('category', $event)">
-                    <option *ngFor="let category of categories" [value]="category[0]">{{ category[1] }}</option>
-                </select></div>@if (game.room()?.config?.customWordsCount) {<div class="config-row"><span><impostor-icon name="pencil" /> Palabras
-                     propias</span><b class="value">{{ game.room()?.config?.customWordsCount }} en juego</b></div>}
+            <div class="category-config"><div class="config-row"><span><impostor-icon name="books" /> Categorías</span><b class="value">{{ isAllCategoriesSelected() ? 'Todas' : selectedCategories().length + ' seleccionadas' }}</b></div>
+                <label class="check-option"><input type="checkbox" [disabled]="!isHost()" [ngModel]="isAllCategoriesSelected()" (ngModelChange)="setAllCategories($event)"><span>Todas</span></label>
+                <label class="check-option" *ngFor="let category of categories"><input type="checkbox" [disabled]="!isHost()" [ngModel]="isCategorySelected(category[0])" (ngModelChange)="setCategory(category[0], $event)"><span>{{ category[1] }}</span></label>
+            </div>
             <div class="config-row"><span><impostor-icon name="detective" /> Pista al impostor</span><label class="switch"><input type="checkbox"
                         [disabled]="!isHost()" [ngModel]="game.room()?.config?.impostorHint"
                         (ngModelChange)="setConfig('impostorHint', $event)"><i></i></label></div>

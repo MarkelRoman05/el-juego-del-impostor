@@ -3,7 +3,6 @@ import { io, Socket } from "socket.io-client";
 import { Ack, Phase, RevealData, RolePayload, Room } from "./game.models";
 
 const SESSION_KEY = "impostor_session";
-const WORDS_KEY = "impostor_words";
 
 @Injectable({ providedIn: "root" })
 export class GameService {
@@ -100,25 +99,23 @@ export class GameService {
     this.rejoinOnce();
   }
 
-  create(name: string, words: string): void {
+  create(name: string): void {
     this.saveSession({ name });
-    this.saveWords(words);
     this.socket.emit(
       "room:create",
-      { name, customWords: words },
+      { name },
       (res: Ack) => {
         if (res?.error) this.notify(res.error);
       },
     );
   }
 
-  join(code: string, name: string, words: string): void {
+  join(code: string, name: string): void {
     const session = this.loadSession();
     this.saveSession({ name });
-    this.saveWords(words);
     this.socket.emit(
       "room:join",
-      { code, name, playerId: session.playerId ?? null, customWords: words },
+      { code, name, playerId: session.playerId ?? null },
       (res: Ack) => {
         if (res?.error) this.notify(res.error);
       },
@@ -181,26 +178,6 @@ export class GameService {
     clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => this.toast.set(""), 4000);
   }
-  loadWords(): string {
-    try {
-      return localStorage.getItem(WORDS_KEY) ?? "";
-    } catch {
-      return "";
-    }
-  }
-  saveWords(value: string): void {
-    try {
-      localStorage.setItem(WORDS_KEY, value);
-    } catch {
-      /* private storage can be unavailable */
-    }
-  }
-  wordsCount(value: string): number {
-    return value
-      .split(/[\n,;]+/)
-      .map((word) => word.trim())
-      .filter((word) => word.length >= 2 && word.length <= 40).length;
-  }
   name(): string {
     return this.loadSession().name ?? "";
   }
@@ -221,7 +198,6 @@ export class GameService {
         code: session.code,
         name: session.name,
         playerId: session.playerId,
-        customWords: this.loadWords(),
       },
       (res: Ack) => {
         this.rejoinInProgress = false;

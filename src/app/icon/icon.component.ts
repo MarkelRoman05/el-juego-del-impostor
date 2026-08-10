@@ -11,6 +11,7 @@ export type IconName =
   | "ballot"
   | "play"
   | "lock"
+  | "share"
   | "hourglass"
   | "theater"
   | "check"
@@ -51,6 +52,10 @@ export type IconName =
         @case ("clipboard") {
           <path d="M8 5h8a2 2 0 0 1 2 2v14H6V7a2 2 0 0 1 2-2Z" />
           <path d="M9 3h6v4H9zM9 12l2 2 4-4" />
+        }
+        @case ("share") {
+          <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
+          <path d="M16 6l-4-4-4 4M12 2v13" />
         }
         @case ("books") {
           <path d="M4 5h4v15H4zM10 4h4v16h-4zM16 6h4v14h-4z" />

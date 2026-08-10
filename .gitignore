@@ -17,5 +17,9 @@ coverage/
 test-results/
 *.tsbuildinfo
 
+# Admin runtime files
+admin-config.json
+admin-tokens.json
+
 # OS metadata
 .DS_Store

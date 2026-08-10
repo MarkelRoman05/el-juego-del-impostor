@@ -34,21 +34,46 @@ const CATEGORIES = {
       'Gladiator', 'Forrest Gump', 'Grease'
     ]
   },
-  deportes: {
-    label: 'Deportes',
-    words: [
-      'fútbol', 'baloncesto', 'tenis', 'natación', 'ciclismo', 'boxeo', 'golf',
-      'rugby', 'voleibol', 'atletismo', 'esquí', 'surf', 'judo', 'ajedrez',
-      'senderismo', 'pádel', 'fútbol americano', 'béisbol', 'hockey', 'gimnasia'
-    ]
-  },
   futbol: {
     label: 'Fútbol',
     words: [
-      'Real Madrid', 'Barcelona', 'Athletic Club', 'Atlético de Madrid', 'Real Sociedad',
-      'Champions League', 'Eurocopa', 'Mundial', 'penalti', 'fuera de juego',
-      'VAR', 'Messi', 'Cristiano Ronaldo', 'Mbappé', 'Lamine Yamal',
-      'portero', 'hat-trick', 'córner', 'tarjeta roja', 'derbi'
+      'Lamine Yamal', 'Vinícius Jr', 'Jude Bellingham', 'Kylian Mbappé', 'Erling Haaland',
+      'Mohamed Salah', 'Kevin De Bruyne', 'Rodri', 'Pedri', 'Gavi',
+      'Florian Wirtz', 'Bukayo Saka', 'Phil Foden', 'Cole Palmer', 'Alexander Isak',
+      'Raphinha', 'Robert Lewandowski', 'Harry Kane', 'Son Heung-min', 'Bruno Fernandes',
+      'Lautaro Martínez', 'Julián Álvarez', 'Federico Valverde', 'Antonio Rüdiger', 'Thibaut Courtois',
+      'Marc-André ter Stegen', 'Dani Carvajal', 'Ronald Araújo', 'William Saliba', 'Virgil van Dijk',
+      'Alisson Becker', 'Emiliano Martínez', 'Declan Rice', 'Martin Ødegaard', 'Bernardo Silva',
+      'Rodrygo', 'Endrick', 'Arda Güler', 'Nico Williams', 'Mikel Oyarzabal',
+      'Álex Baena', 'Aitana Bonmatí', 'Alexia Putellas', 'Jennifer Hermoso', 'Irene Paredes',
+      'Lionel Messi', 'Cristiano Ronaldo', 'Neymar', 'Luis Suárez', 'Sergio Ramos',
+      'Gerard Piqué', 'Andrés Iniesta', 'Xavi Hernández', 'Sergio Busquets', 'Karim Benzema',
+      'Luka Modrić', 'Toni Kroos', 'Manuel Neuer', 'David Alaba', 'Joshua Kimmich',
+      'Thiago Alcántara', 'Raúl González', 'Iker Casillas', 'Carles Puyol', 'Xabi Alonso',
+      'David Villa', 'Fernando Torres', 'Cesc Fàbregas', 'Thierry Henry', 'Zinedine Zidane',
+      'Ronaldo Nazário', 'Ronaldinho', 'Pelé', 'Diego Maradona', 'Alfredo Di Stéfano',
+      'Johan Cruyff', 'Franz Beckenbauer', 'Michel Platini', 'Marco van Basten', 'Paolo Maldini',
+      'Roberto Baggio', 'Gianluigi Buffon', 'Andrea Pirlo', 'Alessandro Del Piero', 'Francesco Totti',
+      'Wayne Rooney', 'Steven Gerrard', 'Frank Lampard', 'Ryan Giggs', 'Eric Cantona',
+      'Alan Shearer', 'Patrick Vieira', 'Didier Drogba', 'Samuel Eto\'o', 'Claudio Pizarro',
+      'Hugo Sánchez', 'Gabriel Batistuta', 'Javier Zanetti', 'Carlos Tévez', 'Ángel Di María',
+      'James Rodríguez', 'Radamel Falcao', 'Luís Figo', 'Eusébio',
+      'George Best', 'Bobby Charlton', 'Lev Yashin', 'Gerd Müller', 'Bobby Moore',
+      'Franco Baresi', 'Lothar Matthäus', 'Miroslav Klose', 'Rivaldo', 'Roberto Carlos',
+      'Cafú', 'Clarence Seedorf', 'Dennis Bergkamp', 'Ruud van Nistelrooy', 'Arjen Robben',
+      'Robin van Persie', 'Wesley Sneijder',       'Eden Hazard', 'Zlatan Ibrahimović', 'Gareth Bale',
+      'Hugo Lloris', 'Antoine Griezmann', 'Paul Pogba', 'N\'Golo Kanté',
+      'Sadio Mané', 'Pierre-Emerick Aubameyang', 'Raheem Sterling', 'Marcus Rashford', 'Trent Alexander-Arnold',
+      'Andrew Robertson', 'Alphonso Davies', 'Achraf Hakimi', 'Marquinhos', 'Casemiro',
+      'Fabinho', 'Alphonse Areola', 'Keylor Navas', 'Jan Oblak', 'Diego Simeone',
+      'Pep Guardiola', 'Jürgen Klopp', 'Carlo Ancelotti', 'José Mourinho',
+      'Santiago Bernabéu', 'Camp Nou', 'Old Trafford', 'Anfield', 'Wembley',
+      'San Siro', 'Signal Iduna Park', 'Allianz Arena', 'Maracaná', 'La Bombonera',
+      'Balón de Oro', 'Botín de Oro', 'Champions League', 'Europa League', 'Copa del Mundo',
+      'Eurocopa', 'Copa América', 'Copa del Rey', 'FA Cup', 'Premier League',
+      'LALIGA', 'Serie A', 'Bundesliga', 'Ligue 1', 'Copa Libertadores',
+      'penalti', 'fuera de juego', 'hat-trick', 'córner', 'tarjeta roja',
+      'VAR', 'portero', 'derbi', 'tiempo de descuento', 'prórroga'
     ]
   },
   profesiones: {
