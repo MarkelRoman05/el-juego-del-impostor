@@ -289,12 +289,12 @@ export class AdminPanelComponent implements OnInit {
 
   wordsText = "";
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     if (!this.admin.isAuthenticated()) {
       this.router.navigate(["/admin/login"]);
       return;
     }
-    this.admin.loadConfig();
+    await this.admin.loadConfig();
     this.wordsText = this.admin.config()?.globalCustomWords ?? "";
   }
 
