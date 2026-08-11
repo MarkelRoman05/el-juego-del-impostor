@@ -1,25 +1,10 @@
 @if (game.reveal(); as reveal) {<section class="view active">
-    <h2><impostor-icon name="ballot" /> Resultado de la votación</h2>
-    @if (reveal.gameOver) {
+    <h2><impostor-icon name="detective" /> Fin de la partida</h2>
     <div class="reveal-impostor">
         <div class="impostor-emoji"><impostor-icon name="detective" /></div>
         <div class="who">{{ (reveal.impostors ?? []) | names }}</div>
-        <div class="sub">{{ reveal.reason === 'correct-word' ? 'La palabra correcta le ha delatado' : 'El impostor ha sido eliminado' }}</div>
+        <div class="sub">La partida ha terminado</div>
+        <div class="word-box"><p class="eyebrow">LA PALABRA ERA</p><div class="word">{{ reveal.word }}</div></div>
     </div>
-    } @else if (reveal.eliminated) {
-    <div class="word-box"><p class="eyebrow">ELIMINADO</p><div class="word">{{ reveal.eliminated.name }}</div><div class="value">La partida continúa</div></div>
-    } @else {
-    <div class="word-box"><p class="eyebrow">EMPATE</p><div class="word">Nadie sale</div><div class="value">Se juega otra ronda</div></div>
-    }
-    <div class="tally" *ngFor="let vote of reveal.votes; trackBy: trackVote">
-        <div class="tally-row"><span class="tally-name">{{ vote.name }}</span>
-            <div class="tally-track">
-                <div class="tally-bar" [style.width.%]="vote.count * 100 / (reveal.votes[0]?.count || 1)"></div>
-            </div><b>{{ vote.count }}</b>
-        </div>
-    </div>
-    <p class="ballots" *ngIf="reveal.ballots.length">Votos: <span
-            *ngFor="let ballot of reveal.ballots; let last = last">{{ playerName(ballot.from) }} → {{
-            playerName(ballot.to) }}<ng-container *ngIf="!last"> · </ng-container></span></p><button
-        class="btn primary big" [disabled]="!isHost()" (click)="game.nextRound()">{{ reveal.gameOver ? 'Nueva partida' : 'Siguiente ronda' }}</button>
+    <button class="btn primary big" [disabled]="!isHost()" (click)="game.nextRound()">Nueva partida</button>
 </section>}

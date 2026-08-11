@@ -2,8 +2,6 @@ export type Phase =
   | "home"
   | "lobby"
   | "round"
-  | "voting"
-  | "result"
   | "gameover"
   | "waiting";
 export type Role = "player" | "impostor";
@@ -18,8 +16,6 @@ export interface RoomConfig {
   impostors: number;
   category: string;
   customWordsCount: number;
-  timer: number;
-  voting: boolean;
   impostorHint: boolean;
   hostPlays: boolean;
 }
@@ -36,27 +32,9 @@ export interface RolePayload {
   word?: string;
   category: string;
   round: number;
-  timer: number;
   impostors?: string[];
 }
-export interface VoteResult {
-  id: string;
-  name: string;
-  count: number;
-}
-export interface Ballot {
-  from: string;
-  to: string;
-}
-export interface LiveVote {
-  from: string;
-  to: string;
-}
 export interface RevealData {
-  eliminated: { id: string; name: string } | null;
-  tied: boolean;
-  votes: VoteResult[];
-  ballots: Ballot[];
   round: number;
   gameOver: boolean;
   word?: string;

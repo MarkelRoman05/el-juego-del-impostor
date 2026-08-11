@@ -3,9 +3,8 @@
     <div class="empty-state eliminated-state">
         <div class="big-emoji"><impostor-icon name="theater" /></div>
         <h2>ELIMINADO</h2>
-        <p class="subtitle">Ya no puedes jugar ni votar. Puedes seguir observando la partida.</p>
+        <p class="subtitle">Ya no puedes jugar. Puedes seguir observando la partida.</p>
     </div>
-    @if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar a votación</button>}
     } @else if (game.isObserver()) {
     <div class="empty-state eliminated-state observer-panel">
         <div class="big-emoji"><impostor-icon name="theater" /></div>
@@ -21,7 +20,6 @@
             <strong>{{ game.role()?.impostors?.join(', ') }}</strong>
         </div>
     </div>
-    @if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar a votación</button>}
     } @else {
     <div class="round-top"><span class="chip">Ronda {{ game.role()?.round }}</span></div>
     <div class="hold-card" role="button" tabindex="0"
@@ -45,16 +43,7 @@
             <div class="category-chip">Categoría: {{ game.role()?.category }}</div>}
         </div>
         <div class="hold-hint">Suelta para ocultar</div>
-     </div>@if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar
-         a votación</button>
+     </div>
       }
-     }
-     @if (isHost()) {
-     <p class="hint">¿El impostor ha acertado la palabra? Márcalo para terminar la partida.</p>
-     <div class="vote-list mark-list">@for (player of game.room()?.players; track player.id) {
-         @if (player.connected && !player.eliminated && isPlayingPlayer(player.id)) {
-         <button class="vote-btn" (click)="markImpostor(player.id)"><impostor-icon name="detective" /> Marcar a {{ player.name }} como impostor</button>
-         }
-     }</div>
-     }
+      @if (isHost()) {<button class="btn secondary" (click)="finishGame()"><impostor-icon name="detective" /> Impostor encontrado - Finalizar partida</button>}
 </section>

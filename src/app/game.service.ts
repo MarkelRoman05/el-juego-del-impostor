@@ -1,6 +1,6 @@
 import { Injectable, signal } from "@angular/core";
 import { io, Socket } from "socket.io-client";
-import { Ack, LiveVote, Phase, RevealData, RolePayload, Room } from "./game.models";
+import { Ack, Phase, RevealData, RolePayload, Room } from "./game.models";
 
 const SESSION_KEY = "impostor_session";
 
@@ -11,11 +11,7 @@ export class GameService {
   readonly me = signal<string | null>(null);
   readonly role = signal<RolePayload | null>(null);
   readonly reveal = signal<RevealData | null>(null);
-  readonly votedFor = signal<string | null>(null);
-  readonly votingDeadline = signal(0);
-  readonly liveVotes = signal<LiveVote[]>([]);
   readonly wordOptions = signal<string[]>([]);
-  readonly roundStartedAt = signal(0);
   readonly connected = signal(false);
   readonly reconnecting = signal(false);
   readonly toast = signal("");
@@ -65,8 +61,6 @@ export class GameService {
         this.room.set(room);
         this.me.set(me);
         this.reveal.set(null);
-        this.votedFor.set(null);
-        this.liveVotes.set([]);
         this.wordOptions.set([]);
         this.phase.set(this.phaseFor(room.phase));
         this.saveSession({ name: this.name(), code: room.code, playerId: me, reconnectToken });
@@ -82,44 +76,25 @@ export class GameService {
       "phase:changed",
       ({
         phase,
-        startedAt,
-        deadlineAt,
       }: {
         phase: string;
-        startedAt?: number;
-        deadlineAt?: number;
       }) => {
-        if (phase === "round" && startedAt) this.roundStartedAt.set(startedAt);
-        if (phase === "round") {
-          this.reveal.set(null);
-          this.liveVotes.set([]);
-        }
-        if (phase === "voting") {
-          this.reveal.set(null);
-          this.votedFor.set(null);
-          this.liveVotes.set([]);
-          this.votingDeadline.set(deadlineAt ?? Date.now() + 60000);
+         if (phase === "round") {
+           this.reveal.set(null);
         }
         this.phase.set(this.phaseFor(phase));
         if (phase === "lobby") {
           this.role.set(null);
           this.reveal.set(null);
-          this.liveVotes.set([]);
           this.wordOptions.set([]);
         }
       },
     );
     this.socket.on("round:started", (role: RolePayload) => {
       this.role.set(role);
-      this.roundStartedAt.set(Date.now());
       this.phase.set("round");
     });
-    this.socket.on("vote:update", (votes: LiveVote[]) => this.liveVotes.set(votes));
     this.socket.on("word:options", (words: string[]) => this.wordOptions.set(words));
-    this.socket.on("round:result", (data: RevealData) => {
-      this.reveal.set(data);
-      this.phase.set("result");
-    });
     this.socket.on("game:over", (data: RevealData) => {
       this.reveal.set(data);
       this.phase.set("gameover");
@@ -137,9 +112,6 @@ export class GameService {
       this.intentionalDisconnect = true;
       this.socket.disconnect();
       this.notify("Esta sesión fue reemplazada desde otra pestaña");
-    });
-    this.socket.on("vote:state", ({ targetId }: { targetId: string | null }) => {
-      this.votedFor.set(targetId);
     });
     this.socket.on("game:ended", () => {
       this.cancelRejoin();
@@ -186,9 +158,6 @@ export class GameService {
       if (res?.error) this.notify(res.error);
     });
   }
-  revealNow(): void {
-    this.socket.emit("round:reveal");
-  }
   leaveRound(): void {
     this.socket.emit("round:leave", (res: Ack) => {
       if (res?.error) this.notify(res.error);
@@ -202,19 +171,9 @@ export class GameService {
   nextRound(): void {
     this.socket.emit("round:next");
   }
-  markImpostor(playerId: string): void {
-    this.socket.emit("impostor:mark", { playerId }, (res: Ack) => {
+  markImpostor(): void {
+    this.socket.emit("impostor:mark", (res: Ack) => {
       if (res?.error) this.notify(res.error);
-    });
-  }
-  vote(targetId: string): void {
-    if (this.votedFor()) return;
-    this.votedFor.set(targetId);
-    this.socket.emit("vote:cast", { targetId }, (res: Ack) => {
-      if (res?.error) {
-        this.votedFor.set(null);
-        this.notify(res.error);
-      }
     });
   }
   kick(playerId: string): void {
@@ -258,7 +217,7 @@ export class GameService {
   }
 
   private phaseFor(value: string): Phase {
-    return ["lobby", "round", "voting", "result", "gameover"].includes(value)
+    return ["lobby", "round", "gameover"].includes(value)
       ? (value as Phase)
       : "waiting";
   }
@@ -383,8 +342,6 @@ export class GameService {
     this.me.set(null);
     this.role.set(null);
     this.reveal.set(null);
-    this.votedFor.set(null);
-    this.liveVotes.set([]);
     this.wordOptions.set([]);
   }
 }

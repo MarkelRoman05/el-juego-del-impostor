@@ -383,8 +383,6 @@ export class AdminPanelComponent implements OnInit {
     const labels: Record<string, string> = {
       lobby: "Lobby",
       round: "Jugando",
-      voting: "Votando",
-      result: "Resultado",
       gameover: "Partida terminada",
     };
     return labels[phase] || phase;

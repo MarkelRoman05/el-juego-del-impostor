@@ -12,7 +12,6 @@ const PORT = Number(process.env.PORT) || 3111;
 const MIN_PLAYERS = 3;
 const MAX_IMPOSTORS = 3;
 const MAX_PLAYERS = 20;
-const VOTE_TIME_MS = 60_000;
 const ROOM_MAX_AGE_MS = 2 * 60 * 60 * 1000;   // una sala vive 2h desde la última actividad
 const EMPTY_ROOM_TTL_MS = 10 * 60 * 1000;     // y se borra 10min después de quedarse vacía
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -353,22 +352,18 @@ function createRoom(hostId, hostName) {
     code,
     hostId,
     originalHostId: hostId,
-    phase: 'lobby',           // lobby | round | voting | result | gameover
+    phase: 'lobby',           // lobby | round | gameover
     round: 0,
     players: new Map(),       // id -> { id, name, connected, reconnectToken }
-    config: { impostors: 1, category: 'animales', customWords: '', timer: 0, voting: true, impostorHint: false, hostPlays: true, hostWordFromCatalog: false },
+    config: { impostors: 1, category: 'animales', customWords: '', impostorHint: false, hostPlays: true, hostWordFromCatalog: false },
     word: null,
     categoryLabel: null,
     impostorIds: null,        // Set<id>
     eliminatedIds: new Set(),
     roleByPlayer: new Map(),  // id -> payload privado de la ronda (para reconexiones)
     usedWords: [],
-    votes: new Map(),         // voterId -> targetId
-    ballots: null,
     revealData: null,
     startedAt: 0,
-    votingDeadlineAt: 0,
-    advanceTimer: null,
     lastActivity: Date.now(),
   };
   room.players.set(hostId, { id: hostId, name: hostName, connected: true, reconnectToken: crypto.randomBytes(32).toString('hex') });
@@ -399,8 +394,6 @@ function serializeRoom(room) {
     config: {
       impostors: room.config.impostors,
       category: room.config.category,
-      timer: room.config.timer,
-      voting: room.config.voting,
       impostorHint: room.config.impostorHint,
       hostPlays: room.config.hostPlays !== false,
       // Privacidad: las palabras personalizadas NUNCA se serializan; solo su número
@@ -474,21 +467,6 @@ function setPhase(room, phase, extra = {}) {
   io.to(room.code).emit('phase:changed', { phase, ...extra });
 }
 
-function clearAdvance(room) {
-  if (room.advanceTimer) {
-    clearTimeout(room.advanceTimer);
-    room.advanceTimer = null;
-  }
-}
-
-function scheduleAdvance(room, ms, fn) {
-  clearAdvance(room);
-  room.advanceTimer = setTimeout(() => {
-    room.advanceTimer = null;
-    fn();
-  }, ms);
-}
-
 function startRound(room) {
   const connected = [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id));
   const impostors = clamp(room.config.impostors, 1, Math.min(MAX_IMPOSTORS, connected.length - 1));
@@ -513,17 +491,14 @@ function startRound(room) {
   room.word = word;
   room.categoryLabel = categoryLabel;
   room.impostorIds = impostorIds;
-  room.votes = new Map();
-  room.ballots = null;
   room.revealData = null;
   room.roleByPlayer = new Map();
   room.startedAt = Date.now();
-  room.votingDeadlineAt = 0;
 
   for (const p of connected) {
     const payload = impostorIds.has(p.id)
-      ? { role: 'impostor', category: room.config.impostorHint ? categoryLabel : '', round: room.round, timer: 0 }
-      : { role: 'player', word, category: categoryLabel, round: room.round, timer: 0 };
+       ? { role: 'impostor', category: room.config.impostorHint ? categoryLabel : '', round: room.round }
+       : { role: 'player', word, category: categoryLabel, round: room.round };
     room.roleByPlayer.set(p.id, payload);
     const sock = io.sockets.sockets.get(p.id);
     if (sock) sock.emit('round:started', payload);
@@ -535,7 +510,6 @@ function startRound(room) {
       word,
       category: categoryLabel,
       round: room.round,
-      timer: 0,
       impostors: [...impostorIds].map((id) => room.players.get(id)?.name || '?'),
     };
     room.roleByPlayer.set(host.id, payload);
@@ -545,68 +519,34 @@ function startRound(room) {
   setPhase(room, 'round', { startedAt: room.startedAt });
 }
 
-function expectedVoters(room) {
-  return [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id)).length;
-}
-
-function checkVotes(room) {
-  if (room.phase !== 'voting') return;
-  if (room.votes.size >= expectedVoters(room)) resolveVotes(room);
-}
-
-function resolveVotes(room) {
-  clearAdvance(room);
-  if (room.phase === 'result' || room.phase === 'gameover') return;
+function finishGame(room) {
+  if (room.phase !== 'round') return;
 
   const playersById = Object.fromEntries([...room.players.entries()]);
-  const tally = new Map();
-  const ballots = [];
-  for (const [from, to] of room.votes) {
-    tally.set(to, (tally.get(to) || 0) + 1);
-    ballots.push({ from, to });
-  }
-  const votes = [...tally.entries()]
-    .map(([id, count]) => ({ id, name: playersById[id]?.name ?? '?', count }))
-    .sort((a, b) => b.count - a.count);
-
-  room.ballots = ballots;
-  const topCount = votes[0]?.count ?? 0;
-  const leaders = votes.filter((vote) => vote.count === topCount);
-  const eliminatedId = leaders.length === 1 ? leaders[0].id : null;
-  if (eliminatedId) room.eliminatedIds.add(eliminatedId);
-  const gameOver = Boolean(eliminatedId && room.impostorIds?.has(eliminatedId)) ||
-    [...room.players.values()].filter((player) => isPlayingPlayer(room, player.id) && !room.eliminatedIds.has(player.id)).length <= (room.impostorIds?.size ?? 1);
-  const result = { eliminated: eliminatedId ? { id: eliminatedId, name: playersById[eliminatedId]?.name ?? '?' } : null, tied: !eliminatedId, votes, ballots, round: room.round, gameOver, word: room.word };
+  const result = {
+    round: room.round,
+    gameOver: true,
+    word: room.word,
+    impostors: [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' })),
+  };
   room.revealData = result;
-  if (gameOver) {
-    result.impostors = [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' }));
-    setPhase(room, 'gameover');
-    io.to(room.code).emit('game:over', result);
-  } else {
-    setPhase(room, 'result');
-    io.to(room.code).emit('round:result', result);
-    broadcastLobby(room);
-  }
+  setPhase(room, 'gameover');
+  io.to(room.code).emit('game:over', result);
 }
 
 function resetToLobby(room) {
-  clearAdvance(room);
   room.phase = 'lobby';
   room.word = null;
   room.categoryLabel = null;
   room.impostorIds = null;
   room.eliminatedIds = new Set();
   room.roleByPlayer = new Map();
-  room.votes = new Map();
-  room.ballots = null;
   room.revealData = null;
-  room.votingDeadlineAt = 0;
   broadcastLobby(room);
   io.to(room.code).emit('phase:changed', { phase: 'lobby' });
 }
 
 function endRoom(room) {
-  clearAdvance(room);
   io.to(room.code).emit('game:ended');
   for (const playerSocket of io.sockets.sockets.values()) {
     if (playerSocket.data.roomCode !== room.code) continue;
@@ -649,27 +589,6 @@ io.on('connection', (socket) => {
       room.roleByPlayer.delete(oldId);
       room.roleByPlayer.set(newId, role);
     }
-    const newVotes = new Map();
-    for (const [k, v] of room.votes) {
-      newVotes.set(k === oldId ? newId : k, v === oldId ? newId : v);
-    }
-    room.votes = newVotes;
-  }
-
-  function getLiveVotes(room) {
-    return [...room.votes].map(([from, to]) => ({
-      from: room.players.get(from)?.name || '?',
-      to: room.players.get(to)?.name || '?',
-    }));
-  }
-
-  function broadcastLiveVotes(room) {
-    const votes = getLiveVotes(room);
-    for (const player of room.players.values()) {
-      const isHostObserver = player.id === room.hostId && room.config.hostPlays === false;
-      if (!player.connected || (!room.eliminatedIds.has(player.id) && !isHostObserver)) continue;
-      io.sockets.sockets.get(player.id)?.emit('vote:update', votes);
-    }
   }
 
   function sendWordOptions(room, sock) {
@@ -685,16 +604,8 @@ io.on('connection', (socket) => {
     if (room.phase === 'round') {
       const role = room.roleByPlayer.get(pid);
       if (role) sock.emit('round:started', role);
-    } else if (room.phase === 'voting') {
-      const role = room.roleByPlayer.get(pid);
-      if (role) sock.emit('round:started', role);
-      sock.emit('phase:changed', { phase: 'voting', deadlineAt: room.votingDeadlineAt });
-      sock.emit('vote:state', { targetId: room.votes.get(pid) || null });
-      if (room.eliminatedIds.has(pid) || (sock.id === room.hostId && room.config.hostPlays === false)) {
-        sock.emit('vote:update', getLiveVotes(room));
-      }
-    } else if ((room.phase === 'result' || room.phase === 'gameover') && room.revealData) {
-      sock.emit(room.phase === 'gameover' ? 'game:over' : 'round:result', room.revealData);
+    } else if (room.phase === 'gameover' && room.revealData) {
+      sock.emit('game:over', room.revealData);
     }
   }
 
@@ -707,9 +618,6 @@ io.on('connection', (socket) => {
     const p = room.players.get(pid);
     if (p) {
       p.connected = false;
-      for (const [voterId, targetId] of room.votes) {
-        if (voterId === pid || targetId === pid) room.votes.delete(voterId);
-      }
       if (room.hostId === pid) {
         const next = [...room.players.values()].find((x) => x.connected);
         room.hostId = next ? next.id : null;
@@ -720,7 +628,6 @@ io.on('connection', (socket) => {
         return;
       }
       broadcastLobby(room);
-      if (room.phase === 'voting') checkVotes(room);
     }
   }
 
@@ -872,7 +779,6 @@ io.on('connection', (socket) => {
       ? 'mezcla'
       : cfg.category.trim() ? categoryKeys(cfg.category).join(',') : '';
     if (typeof cfg.customWords === 'string') room.config.customWords = cfg.customWords.slice(0, 2000);
-    if (typeof cfg.voting !== 'undefined') room.config.voting = cfg.voting !== false;
     if (typeof cfg.impostorHint !== 'undefined') room.config.impostorHint = cfg.impostorHint === true;
     if (typeof cfg.hostPlays !== 'undefined') room.config.hostPlays = cfg.hostPlays !== false;
     if (typeof cfg.hostWordFromCatalog !== 'undefined') room.config.hostWordFromCatalog = cfg.hostWordFromCatalog === true;
@@ -916,70 +822,27 @@ io.on('connection', (socket) => {
     ackOk(ack);
   });
 
-  socket.on('vote:cast', ({ targetId } = {}, ack) => {
-    const room = getRoomOf(socket);
-    const pid = socket.data.playerId;
-    if (!room || room.phase !== 'voting') return ackErr(ack, 'Todavía no se vota');
-    if (!room.players.has(pid)) return ackErr(ack, 'No estás en la partida');
-    if (!isPlayingPlayer(room, pid)) return ackErr(ack, 'Solo los jugadores activos pueden votar');
-    if (targetId === pid) return ackErr(ack, 'No puedes votarte a ti mismo');
-    if (!room.players.has(targetId) || !isPlayingPlayer(room, targetId)) return ackErr(ack, 'Jugador no encontrado');
-    room.votes.set(pid, targetId);
-    room.lastActivity = Date.now();
-    broadcastLiveVotes(room);
-    ackOk(ack);
-    checkVotes(room);
-  });
-
   socket.on('round:reveal', (ack) => {
     const room = getRoomOf(socket);
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede revelar');
-    if (room.phase === 'lobby' || room.phase === 'result' || room.phase === 'gameover') return ackOk(ack);
-    // con votación activa, "revelar" durante el debate = pasar a votación
-    if (room.phase === 'round' && room.config.voting) {
-      clearAdvance(room);
-      room.votingDeadlineAt = Date.now() + VOTE_TIME_MS;
-      setPhase(room, 'voting', { deadlineAt: room.votingDeadlineAt });
-      scheduleAdvance(room, VOTE_TIME_MS, () => resolveVotes(room));
-      return ackOk(ack);
-    }
-    resolveVotes(room);
+    if (room.phase !== 'round') return ackOk(ack);
+    finishGame(room);
     ackOk(ack);
   });
 
   socket.on('round:next', (ack) => {
     const room = getRoomOf(socket);
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede avanzar');
-    if (room.phase !== 'result' && room.phase !== 'gameover') return ackErr(ack, 'No hay una ronda que continuar');
-    if (room.phase === 'result') startRound(room);
-    else resetToLobby(room);
+    if (room.phase !== 'gameover') return ackErr(ack, 'No hay una ronda que continuar');
+    resetToLobby(room);
     ackOk(ack);
   });
 
-  socket.on('impostor:mark', ({ playerId } = {}, ack) => {
+  socket.on('impostor:mark', (ack) => {
     const room = getRoomOf(socket);
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede marcar al impostor');
     if (room.phase !== 'round') return ackErr(ack, 'Solo puedes marcar durante la ronda');
-    const player = room.players.get(playerId);
-    if (!player || !player.connected || !isPlayingPlayer(room, playerId)) {
-      return ackErr(ack, 'Ese jugador ya no está activo');
-    }
-    if (!room.impostorIds?.has(playerId)) return ackErr(ack, 'Ese jugador no es el impostor');
-    const playersById = Object.fromEntries([...room.players.entries()]);
-    const result = {
-      eliminated: null,
-      tied: false,
-      votes: [],
-      ballots: [],
-      round: room.round,
-      gameOver: true,
-      reason: 'correct-word',
-      impostors: [...room.impostorIds].map((id) => ({ id, name: playersById[id]?.name ?? '?' })),
-    };
-    room.revealData = result;
-    clearAdvance(room);
-    setPhase(room, 'gameover');
-    io.to(room.code).emit('game:over', result);
+    finishGame(room);
     ackOk(ack);
   });
 });
@@ -989,8 +852,6 @@ server.listen(PORT, () => {
 });
 
 function shutdown() {
-  clearAdvance({});
-  for (const room of rooms.values()) clearAdvance(room);
   io.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 3000);
 }

@@ -38,7 +38,7 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
   await emitAckP(host, 'config:set', { impostors: 3 });
   let lu = await luP;
   check('solo {impostors:3} → clamp a 2', lu.config.impostors === 2, `impostors=${lu.config.impostors}`);
-  check('categoría/votación intactos, sin temporizador y sin pista', lu.config.category === 'animales' && lu.config.timer === 0 && lu.config.voting === true && lu.config.impostorHint === false, JSON.stringify(lu.config));
+   check('categoría intacta y sin pista', lu.config.category === 'animales' && lu.config.impostorHint === false && !('timer' in lu.config), JSON.stringify(lu.config));
 
   // 2) solo categoría: impostors DEBE seguir en 2
   luP = waitFor(host, 'lobby:update', (d) => d.config.category === 'cine');
@@ -46,19 +46,13 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
   lu = await luP;
   check('cambiar categoría NO pisa impostors', lu.config.impostors === 2 && lu.config.category === 'cine', `impostors=${lu.config.impostors} cat=${lu.config.category}`);
 
-  // 3) un tiempo enviado por un cliente antiguo se ignora
+   // 3) un tiempo enviado por un cliente antiguo no se incorpora al contrato
   luP = waitFor(host, 'lobby:update', (d) => d.config.category === 'cine');
   await emitAckP(host, 'config:set', { timer: 60 });
   lu = await luP;
-  check('el temporizador permanece desactivado', lu.config.timer === 0 && lu.config.category === 'cine' && lu.config.impostors === 2, JSON.stringify(lu.config));
+   check('el temporizador no existe', !('timer' in lu.config) && lu.config.category === 'cine' && lu.config.impostors === 2, JSON.stringify(lu.config));
 
-  // 4) solo votación
-  luP = waitFor(host, 'lobby:update', (d) => d.config.voting === false);
-  await emitAckP(host, 'config:set', { voting: false });
-  lu = await luP;
-  check('cambiar votación NO pisa nada', lu.config.voting === false && lu.config.timer === 0 && lu.config.impostors === 2, JSON.stringify(lu.config));
-
-  // 5) la ronda respeta el config: EXACTAMENTE 2 impostores (roles de los 3 sockets)
+   // 4) la ronda respeta el config: EXACTAMENTE 2 impostores (roles de los 3 sockets)
   const startedP = [onEvent(host, 'round:started'), ...extra.map((p) => onEvent(p, 'round:started'))];
   const ack = await emitAck(host, 'round:start'); // sin payload: si no, socket.io no lo trata como ack
   check('round:start ok', ack.ok === true, JSON.stringify(ack));

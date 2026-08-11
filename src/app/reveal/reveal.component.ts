@@ -16,12 +16,4 @@ export class RevealComponent {
   isHost(): boolean {
     return this.game.me() === this.game.room()?.hostId;
   }
-  playerName(id: string): string {
-    return (
-      this.game.room()?.players.find((player) => player.id === id)?.name ?? "?"
-    );
-  }
-  trackVote(_: number, vote: { id: string }): string {
-    return vote.id;
-  }
 }

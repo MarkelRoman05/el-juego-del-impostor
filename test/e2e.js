@@ -130,29 +130,15 @@ async function main() {
   check('el jugador recibe una palabra de la lista', ['volcán', 'cascada', 'arcoíris'].includes(theWord), theWord || '?');
   check('los impostores reciben la categoría', impostors.every((i) => i.category === 'Palabras personalizadas'));
 
-  /* 5. sin temporizador + votación: "revelar" pasa a votación */
-  const votingPhaseP = onEvent(host, 'phase:changed');
-  res = await emitAck(host, 'round:reveal');
-  check('round:reveal → voting ok', res.ok === true);
-  const votingPhase = await votingPhaseP;
-  check('fase voting con deadline', votingPhase.phase === 'voting' && !!votingPhase.deadlineAt);
+   /* 5. el host finaliza directamente, sin votación */
+   const revealP = onEvent(host, 'game:over');
+   res = await emitAck(host, 'impostor:mark');
+   check('impostor encontrado → fin de partida', res.ok === true);
+   const reveal = await revealP;
+   check('reveal: 2 impostores con nombre', reveal.impostors.length === 2 && reveal.impostors.every((i) => i.name), reveal.impostors.map((i) => i.name).join(', '));
+   check('reveal: palabra coincide', reveal.word === theWord);
 
-  /* 6. votos */
-  check('autovoto rechazado', !(await emitAckP(host, 'vote:cast', { targetId: hostId })).ok);
-  check('voto: host → p1', (await emitAckP(host, 'vote:cast', { targetId: p1Id })).ok === true);
-  check('voto: p1 → p2', (await emitAckP(p1, 'vote:cast', { targetId: p2Id })).ok === true);
-
-  /* 7. último voto → reveal automático (waiter ANTES) */
-  const revealP = onEvent(host, 'game:over');
-  res = await emitAckP(p2, 'vote:cast', { targetId: p1Id });
-  check('voto: p2 → p1', res.ok === true);
-  const reveal = await revealP;
-  check('reveal: 2 impostores con nombre', reveal.impostors.length === 2 && reveal.impostors.every((i) => i.name), reveal.impostors.map((i) => i.name).join(', '));
-  check('reveal: palabra coincide', reveal.word === theWord);
-  check('reveal: recuento 2-1 a favor de Jugador 1', reveal.votes.some((v) => v.name === 'Jugador 1' && v.count === 2));
-  check('reveal: 3 balotas', reveal.ballots.length === 3);
-
-  /* 8. siguiente ronda */
+   /* 6. siguiente partida */
   const backP = onEvent(host, 'phase:changed');
   res = await emitAck(host, 'round:next');
   check('round:next ok', res.ok === true);

@@ -32,9 +32,9 @@ export class RoundComponent {
   holdEnd(): void {
     this.revealed.set(false);
   }
-  markImpostor(playerId: string): void {
+  finishGame(): void {
     if (window.confirm("¿Confirmar que ha dicho la palabra correcta?")) {
-      this.game.markImpostor(playerId);
+      this.game.markImpostor();
     }
   }
   @HostListener("window:pointerup") onPointerUp(): void {
