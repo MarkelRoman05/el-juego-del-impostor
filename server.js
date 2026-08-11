@@ -715,6 +715,10 @@ io.on('connection', (socket) => {
         room.hostId = next ? next.id : null;
       }
       room.lastActivity = Date.now();
+      if (![...room.players.values()].some((player) => player.connected)) {
+        endRoom(room);
+        return;
+      }
       broadcastLobby(room);
       if (room.phase === 'voting') checkVotes(room);
     }
