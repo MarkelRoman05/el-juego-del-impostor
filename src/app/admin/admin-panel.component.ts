@@ -97,9 +97,7 @@ import { IconComponent } from "../icon/icon.component";
                       </div>
                       <div class="card-actions" style="gap:6px">
                         <button class="btn small" (click)="startEditCategory(entry.key)">Editar</button>
-                         @if (entry.custom) {
-                           <button class="btn danger small" (click)="removeCategory(entry.key)" [disabled]="admin.loading()">Eliminar</button>
-                         }
+                         <button class="btn danger small" (click)="removeCategory(entry.key)" [disabled]="admin.loading()">Eliminar</button>
                       </div>
                     </div>
                   }

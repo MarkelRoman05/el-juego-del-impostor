@@ -125,8 +125,15 @@ app.put('/api/admin/categories/:key', adminAuth, (req, res) => {
 
 app.delete('/api/admin/categories/:key', adminAuth, (req, res) => {
   const key = sanitizeCategoryKey(req.params.key);
-  if (!adminConfig.customCategories?.[key]) return res.status(404).json({ error: 'Categoría no encontrada' });
-  delete adminConfig.customCategories[key];
+  const isBuiltIn = Boolean(CATEGORIES[key] && key !== 'mezcla');
+  const isCustom = Boolean(adminConfig.customCategories?.[key]);
+  if (!isBuiltIn && !isCustom) return res.status(404).json({ error: 'Categoría no encontrada' });
+  if (isBuiltIn) {
+    adminConfig.disabledCategories[key] = true;
+    delete adminConfig.categoryOverrides[key];
+  } else {
+    delete adminConfig.customCategories[key];
+  }
   saveAdminConfig(adminConfig);
   for (const room of rooms.values()) {
     const keys = room.config.category.split(',').filter((k) => k !== key);
@@ -171,7 +178,7 @@ const cleanCategoryWords = (words) => [...new Set(
 function getAllCategories() {
   const builtIn = {};
   for (const [key, cat] of Object.entries(CATEGORIES)) {
-    if (key === 'mezcla') continue;
+    if (key === 'mezcla' || adminConfig.disabledCategories?.[key]) continue;
     const override = adminConfig.categoryOverrides?.[key];
     builtIn[key] = { label: override?.label || cat.label, custom: false };
   }
@@ -184,7 +191,7 @@ function getAllCategories() {
 function getAdminCategories() {
   const categories = {};
   for (const [key, cat] of Object.entries(CATEGORIES)) {
-    if (key === 'mezcla') continue;
+    if (key === 'mezcla' || adminConfig.disabledCategories?.[key]) continue;
     const override = adminConfig.categoryOverrides?.[key];
     categories[key] = {
       label: override?.label || cat.label,
@@ -238,6 +245,7 @@ function saveAdminConfig(config) {
 let adminConfig = loadAdminConfig();
 adminConfig.customCategories ||= {};
 adminConfig.categoryOverrides ||= {};
+adminConfig.disabledCategories ||= {};
 loadAdminTokens();
 
 function generateAdminToken() {
@@ -356,8 +364,9 @@ function serializeRoom(room) {
 }
 
 function categoryKeys(value) {
-  if (value === 'mezcla') return [...Object.keys(CATEGORIES).filter((key) => key !== 'mezcla'), ...Object.keys(adminConfig.customCategories || {}), 'personalizadas'];
-  const keys = String(value || '').split(',').filter((key, index, list) => (CATEGORIES[key] || (adminConfig.customCategories || {})[key] || key === 'personalizadas') && key !== 'mezcla' && list.indexOf(key) === index);
+  const isEnabledBuiltIn = (key) => Boolean(CATEGORIES[key] && key !== 'mezcla' && !adminConfig.disabledCategories?.[key]);
+  if (value === 'mezcla') return [...Object.keys(CATEGORIES).filter(isEnabledBuiltIn), ...Object.keys(adminConfig.customCategories || {}), 'personalizadas'];
+  const keys = String(value || '').split(',').filter((key, index, list) => (isEnabledBuiltIn(key) || (adminConfig.customCategories || {})[key] || key === 'personalizadas') && key !== 'mezcla' && list.indexOf(key) === index);
   return keys.length ? keys : ['animales'];
 }
 
