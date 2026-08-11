@@ -1,10 +1,5 @@
 import { Injectable, signal, computed } from "@angular/core";
 
-interface AdminConfig {
-  globalCustomWords: string;
-  words: string[];
-}
-
 interface RoomInfo {
   code: string;
   phase: string;
@@ -16,6 +11,12 @@ interface RoomInfo {
   createdAt: number;
 }
 
+export interface AdminCategory {
+  label: string;
+  words: string[];
+  custom: boolean;
+}
+
 @Injectable({ providedIn: "root" })
 export class AdminService {
   private readonly TOKEN_KEY = "admin_token";
@@ -23,8 +24,8 @@ export class AdminService {
 
   readonly token = signal<string | null>(localStorage.getItem(this.TOKEN_KEY));
   readonly isAuthenticated = computed(() => !!this.token());
-  readonly config = signal<AdminConfig | null>(null);
   readonly rooms = signal<RoomInfo[]>([]);
+  readonly categories = signal<Record<string, AdminCategory>>({});
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -41,7 +42,7 @@ export class AdminService {
       if (res.ok && data.token) {
         this.token.set(data.token);
         localStorage.setItem(this.TOKEN_KEY, data.token);
-        await this.loadConfig();
+        await this.loadCategories();
         return true;
       }
       this.error.set(data.error || "Error de autenticación");
@@ -57,60 +58,8 @@ export class AdminService {
   logout(): void {
     this.token.set(null);
     localStorage.removeItem(this.TOKEN_KEY);
-    this.config.set(null);
     this.rooms.set([]);
-  }
-
-  async loadConfig(): Promise<void> {
-    if (!this.token()) return;
-    this.loading.set(true);
-    try {
-      const res = await fetch(`${this.API_BASE}/config`, {
-        headers: { Authorization: `Bearer ${this.token()}` },
-      });
-      if (res.status === 401) {
-        this.logout();
-        return;
-      }
-      const data = await res.json();
-      this.config.set(data);
-    } catch {
-      this.error.set("Error al cargar configuración");
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  async saveConfig(globalCustomWords: string): Promise<boolean> {
-    if (!this.token()) return false;
-    this.loading.set(true);
-    this.error.set(null);
-    try {
-      const res = await fetch(`${this.API_BASE}/config`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.token()}`,
-        },
-        body: JSON.stringify({ globalCustomWords }),
-      });
-      if (res.status === 401) {
-        this.logout();
-        return false;
-      }
-      const data = await res.json();
-      if (res.ok) {
-        this.config.set({ globalCustomWords, words: data.words });
-        return true;
-      }
-      this.error.set(data.error || "Error al guardar");
-      return false;
-    } catch {
-      this.error.set("Error de conexión");
-      return false;
-    } finally {
-      this.loading.set(false);
-    }
+    this.categories.set({});
   }
 
   async loadRooms(): Promise<void> {
@@ -149,6 +98,115 @@ export class AdminService {
     } catch {
       this.error.set("Error al eliminar sala");
       return false;
+    }
+  }
+
+  async loadCategories(): Promise<void> {
+    if (!this.token()) return;
+    try {
+      const res = await fetch(`${this.API_BASE}/categories`, {
+        headers: { Authorization: `Bearer ${this.token()}` },
+      });
+      if (res.status === 401) {
+        this.logout();
+        return;
+      }
+      const data = await res.json();
+      this.categories.set(data.categories || {});
+    } catch {
+      this.error.set("Error al cargar categorías");
+    }
+  }
+
+  async createCategory(key: string, label: string, words: string[]): Promise<boolean> {
+    if (!this.token()) return false;
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      const res = await fetch(`${this.API_BASE}/categories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token()}`,
+        },
+        body: JSON.stringify({ key, label, words }),
+      });
+      if (res.status === 401) {
+        this.logout();
+        return false;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        this.categories.set(data.categories || {});
+        return true;
+      }
+      this.error.set(data.error || "Error al crear categoría");
+      return false;
+    } catch {
+      this.error.set("Error de conexión");
+      return false;
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async updateCategory(key: string, updates: { label?: string; words?: string[] }): Promise<boolean> {
+    if (!this.token()) return false;
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      const res = await fetch(`${this.API_BASE}/categories/${key}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token()}`,
+        },
+        body: JSON.stringify(updates),
+      });
+      if (res.status === 401) {
+        this.logout();
+        return false;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        this.categories.set(data.categories || {});
+        return true;
+      }
+      this.error.set(data.error || "Error al actualizar categoría");
+      return false;
+    } catch {
+      this.error.set("Error de conexión");
+      return false;
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async deleteCategory(key: string): Promise<boolean> {
+    if (!this.token()) return false;
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      const res = await fetch(`${this.API_BASE}/categories/${key}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${this.token()}` },
+      });
+      if (res.status === 401) {
+        this.logout();
+        return false;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        this.categories.set(data.categories || {});
+        return true;
+      }
+      this.error.set(data.error || "Error al eliminar categoría");
+      return false;
+    } catch {
+      this.error.set("Error de conexión");
+      return false;
+    } finally {
+      this.loading.set(false);
     }
   }
 }

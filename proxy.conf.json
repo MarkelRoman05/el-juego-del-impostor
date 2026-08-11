@@ -5,7 +5,7 @@
     "ws": true,
     "changeOrigin": true
   },
-  "/api/admin": {
+  "/api": {
     "target": "http://127.0.0.1:3111",
     "secure": false,
     "changeOrigin": true

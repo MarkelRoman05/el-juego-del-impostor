@@ -1,10 +1,20 @@
 <section class="view active">
     <h2><impostor-icon name="ballot" /> Votación</h2>
+    @if (game.isObserver()) {
+    <div class="empty-state eliminated-state">
+        <div class="big-emoji"><impostor-icon name="theater" /></div>
+        <h2>{{ game.isEliminated() ? 'ELIMINADO' : 'GESTIONANDO PARTIDA' }}</h2>
+        <p class="subtitle">Solo puedes observar esta votación.</p>
+    </div>
+    } @else {
     <p class="subtitle">¿Quién crees que es el impostor?</p>
     <div class="timer vote-timer"><impostor-icon name="hourglass" /> {{ remaining() }}</div>
-    <div class="vote-list"><ng-container *ngFor="let player of game.room()?.players; trackBy: trackPlayer">@if (canVote(player)) {<button class="vote-btn" [class.picked]="game.votedFor() === player.id"
-            [disabled]="!!game.votedFor()" (click)="game.vote(player.id)">{{ player.name }} <span><impostor-icon name="check" /> Votado</span></button>}</ng-container>
-    </div>
-    <p class="hint">{{ game.votedFor() ? 'Voto registrado. Esperando al resto…' : 'Elige a un jugador' }}</p>@if
-    (isHost()) {<button class="btn secondary" (click)="game.revealNow()">Revelar ahora</button>}
+    <div class="vote-list"><ng-container *ngFor="let player of game.room()?.players; trackBy: trackPlayer">
+        @if (canVote(player)) {<button class="vote-btn" [class.picked]="game.votedFor() === player.id"
+            [disabled]="!!game.votedFor()" (click)="game.vote(player.id)">{{ player.name }} <span><impostor-icon
+                name="check" /> Votado</span></button>}
+    </ng-container></div>
+    <p class="hint">{{ game.votedFor() ? 'Voto registrado. Esperando al resto…' : 'Elige a un jugador' }}</p>
+    }
+    @if (isHost()) {<button class="btn secondary" (click)="game.revealNow()">Revelar ahora</button>}
 </section>

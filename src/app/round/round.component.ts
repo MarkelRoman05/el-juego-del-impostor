@@ -36,6 +36,11 @@ export class RoundComponent {
       this.game.leaveRound();
     }
   }
+  markImpostor(playerId: string): void {
+    if (window.confirm("¿Confirmar que ha dicho la palabra correcta?")) {
+      this.game.markImpostor(playerId);
+    }
+  }
   @HostListener("window:pointerup") onPointerUp(): void {
     this.holdEnd();
   }

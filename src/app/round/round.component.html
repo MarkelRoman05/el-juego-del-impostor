@@ -1,4 +1,19 @@
 <section class="view active">
+    @if (game.isEliminated()) {
+    <div class="empty-state eliminated-state">
+        <div class="big-emoji"><impostor-icon name="theater" /></div>
+        <h2>ELIMINADO</h2>
+        <p class="subtitle">Ya no puedes jugar ni votar. Puedes seguir observando la partida.</p>
+    </div>
+    @if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar a votación</button>}
+    } @else if (game.isObserver()) {
+    <div class="empty-state eliminated-state">
+        <div class="big-emoji"><impostor-icon name="theater" /></div>
+        <h2>GESTIONANDO PARTIDA</h2>
+        <p class="subtitle">No estás jugando. Puedes observar y gestionar las rondas.</p>
+    </div>
+    @if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar a votación</button>}
+    } @else {
     <div class="round-top"><span class="chip">Ronda {{ game.role()?.round }}</span></div>
     <div class="hold-card" [class.revealed]="revealed()" (pointerdown)="holdStart($event)" (pointerleave)="holdEnd()"
         (contextmenu)="$event.preventDefault()">
@@ -18,6 +33,13 @@
         </div>
         <div class="hold-hint">Suelta para ocultar</div>
     </div>@if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar
-        a votación</button>}
+        a votación</button>
+    <p class="hint">¿Alguien ha dicho la palabra correcta?</p>
+    <div class="vote-list mark-list">@for (player of game.room()?.players; track player.id) {
+        @if (player.connected && !player.eliminated) {
+        <button class="vote-btn" (click)="markImpostor(player.id)">Marcar a {{ player.name }} como impostor</button>
+        }
+    }</div>}
     <button class="round-exit" (click)="leaveRound()">Salir de la partida</button>
+    }
 </section>

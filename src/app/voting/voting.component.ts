@@ -36,7 +36,7 @@ export class VotingComponent {
   }
 
   canVote(player: Player): boolean {
-    return player.connected && player.id !== this.game.me();
+    return player.connected && !player.eliminated && player.id !== this.game.me();
   }
   
   trackPlayer(_: number, player: Player): string {

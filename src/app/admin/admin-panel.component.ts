@@ -28,10 +28,10 @@ import { IconComponent } from "../icon/icon.component";
         <div class="admin-tabs">
           <button
             class="tab"
-            [class.active]="activeTab() === 'words'"
-            (click)="activeTab.set('words')"
+            [class.active]="activeTab() === 'categories'"
+            (click)="switchToCategories()"
           >
-            Palabras globales
+            Categorías
           </button>
           <button
             class="tab"
@@ -42,61 +42,71 @@ import { IconComponent } from "../icon/icon.component";
           </button>
         </div>
 
-        @if (activeTab() === 'words') {
-          <div class="card words-card">
-            <div class="card-header">
-              <impostor-icon name="books" />
-              <h3>Palabras personalizadas globales</h3>
-            </div>
-            <p class="hint">
-              Estas palabras se mezclan en todas las partidas. Separa con comas, punto y coma o saltos de línea.
-            </p>
-            <textarea
-              [(ngModel)]="wordsText"
-              placeholder="Escribe las palabras aquí..."
-              rows="10"
-              [disabled]="admin.loading()"
-            ></textarea>
-            <div class="words-stats">
-              <span>{{ currentWords().length }} palabras</span>
-              @if (wordsText !== (admin.config()?.globalCustomWords ?? '')) {
-                <span class="unsaved">Sin guardar</span>
+        @if (activeTab() === 'categories') {
+          @if (editingCategory() !== null) {
+            <div class="card">
+              <div class="card-header">
+                <impostor-icon name="note" />
+                 <h3>{{ editingCategory() === '__new__' ? 'Nueva categoría' : 'Editar categoría' }}</h3>
+              </div>
+              <label class="field-label">Nombre</label>
+              <input
+                type="text"
+                [(ngModel)]="editLabel"
+                placeholder="Nombre de la categoría"
+                 [disabled]="admin.loading()"
+              />
+              <label class="field-label">Palabras</label>
+              <textarea
+                [(ngModel)]="editWords"
+                placeholder="Separa con comas, punto y coma o saltos de línea"
+                rows="8"
+                [disabled]="admin.loading()"
+              ></textarea>
+              <div class="words-stats">
+                <span>{{ editWordList().length }} palabras</span>
+              </div>
+              <div class="card-actions">
+                <button class="btn primary" (click)="saveEditingCategory()" [disabled]="admin.loading()">
+                  {{ admin.loading() ? "Guardando..." : "Guardar" }}
+                </button>
+                <button class="btn ghost" (click)="editingCategory.set(null)">Cancelar</button>
+              </div>
+              @if (admin.error()) {
+                <p class="error-msg">{{ admin.error() }}</p>
               }
             </div>
-            <div class="card-actions">
-              <button
-                class="btn primary"
-                (click)="saveWords()"
-                [disabled]="admin.loading() || wordsText === (admin.config()?.globalCustomWords ?? '')"
-              >
-                {{ admin.loading() ? "Guardando..." : "Guardar" }}
-              </button>
-              <button
-                class="btn ghost"
-                (click)="resetWords()"
-                [disabled]="admin.loading() || wordsText === (admin.config()?.globalCustomWords ?? '')"
-              >
-                Descartar
-              </button>
-            </div>
-            @if (admin.error()) {
-              <p class="error-msg">{{ admin.error() }}</p>
-            }
-          </div>
-
-          <div class="card preview-card">
-            <div class="card-header">
-              <impostor-icon name="note" />
-              <h3>Vista previa</h3>
-            </div>
-            <div class="word-list">
-              @for (word of currentWords(); track word) {
-                <span class="word-tag">{{ word }}</span>
-              } @empty {
-                <p class="hint">No hay palabras definidas</p>
+          } @else {
+            <div class="card">
+              <div class="card-header">
+                <impostor-icon name="books" />
+                 <h3>Todas las categorías</h3>
+                <button class="btn small" (click)="startNewCategory()">
+                  + Nueva
+                </button>
+              </div>
+              @if (categoryEntries().length === 0) {
+                 <p class="hint">Gestiona las categorías del juego o crea una propia.</p>
+              } @else {
+                <div class="rooms-list">
+                  @for (entry of categoryEntries(); track entry.key) {
+                    <div class="room-item">
+                      <div class="room-info">
+                        <span class="room-code">{{ entry.label }}</span>
+                         <span class="room-players">{{ entry.words.length }} palabras{{ entry.custom ? '' : ' · integrada' }}</span>
+                      </div>
+                      <div class="card-actions" style="gap:6px">
+                        <button class="btn small" (click)="startEditCategory(entry.key)">Editar</button>
+                         @if (entry.custom) {
+                           <button class="btn danger small" (click)="removeCategory(entry.key)" [disabled]="admin.loading()">Eliminar</button>
+                         }
+                      </div>
+                    </div>
+                  }
+                </div>
               }
             </div>
-          </div>
+          }
         }
 
         @if (activeTab() === 'rooms') {
@@ -280,46 +290,42 @@ import { IconComponent } from "../icon/icon.component";
       resize: vertical;
       min-height: 150px;
     }
+    .field-label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 8px 0 4px;
+      font-weight: 600;
+    }
   `],
 })
 export class AdminPanelComponent implements OnInit {
   readonly admin = inject(AdminService);
   readonly router = inject(Router);
-  readonly activeTab = signal<"words" | "rooms">("words");
+  readonly activeTab = signal<"categories" | "rooms">("categories");
+  readonly editingCategory = signal<string | null>(null);
 
-  wordsText = "";
+  editLabel = "";
+  editWords = "";
+  private editKey = "";
 
   async ngOnInit(): Promise<void> {
     if (!this.admin.isAuthenticated()) {
       this.router.navigate(["/admin/login"]);
       return;
     }
-    await this.admin.loadConfig();
-    this.wordsText = this.admin.config()?.globalCustomWords ?? "";
-  }
-
-  currentWords(): string[] {
-    return this.wordsText
-      .split(/[\n,;]+/)
-      .map((w) => w.trim())
-      .filter((w) => w.length >= 2 && w.length <= 40)
-      .filter((w, i, arr) => arr.indexOf(w) === i);
-  }
-
-  async saveWords(): Promise<void> {
-    const success = await this.admin.saveConfig(this.wordsText);
-    if (success) {
-      this.wordsText = this.admin.config()?.globalCustomWords ?? "";
-    }
-  }
-
-  resetWords(): void {
-    this.wordsText = this.admin.config()?.globalCustomWords ?? "";
+    await this.admin.loadCategories();
   }
 
   async switchToRooms(): Promise<void> {
     this.activeTab.set("rooms");
     await this.loadRooms();
+  }
+
+  async switchToCategories(): Promise<void> {
+    this.activeTab.set("categories");
+    this.editingCategory.set(null);
+    await this.admin.loadCategories();
   }
 
   async loadRooms(): Promise<void> {
@@ -337,9 +343,68 @@ export class AdminPanelComponent implements OnInit {
       lobby: "Lobby",
       round: "Jugando",
       voting: "Votando",
-      reveal: "Revelado",
+      result: "Resultado",
+      gameover: "Partida terminada",
     };
     return labels[phase] || phase;
+  }
+
+  categoryEntries(): Array<{ key: string; label: string; words: string[]; custom: boolean }> {
+    return Object.entries(this.admin.categories()).map(([key, cat]) => ({
+      key,
+      label: cat.label,
+      words: cat.words,
+      custom: cat.custom,
+    }));
+  }
+
+  editWordList(): string[] {
+    return this.editWords
+      .split(/[\n,;]+/)
+      .map((w) => w.trim())
+      .filter((w) => w.length >= 2 && w.length <= 40)
+      .filter((w, i, arr) => arr.indexOf(w) === i);
+  }
+
+  startNewCategory(): void {
+    this.editKey = "";
+    this.editLabel = "";
+    this.editWords = "";
+    this.editingCategory.set("__new__");
+  }
+
+  startEditCategory(key: string): void {
+    const cat = this.admin.categories()[key];
+    if (!cat) return;
+    this.editKey = key;
+    this.editLabel = cat.label;
+    this.editWords = cat.words.join(", ");
+    this.editingCategory.set(key);
+  }
+
+  async saveEditingCategory(): Promise<void> {
+    const words = this.editWordList();
+    if (!this.editLabel.trim() || !words.length) return;
+    if (this.editingCategory() === "__new__") {
+      const key = this.editLabel.trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30);
+      if (!key) return;
+      const ok = await this.admin.createCategory(key, this.editLabel.trim(), words);
+      if (ok) this.editingCategory.set(null);
+    } else {
+      const ok = await this.admin.updateCategory(this.editKey, {
+        label: this.editLabel.trim(),
+        words,
+      });
+      if (ok) this.editingCategory.set(null);
+    }
+  }
+
+  async removeCategory(key: string): Promise<void> {
+    const cat = this.admin.categories()[key];
+    if (!cat) return;
+    if (confirm(`¿Eliminar la categoría "${cat.label}"?`)) {
+      await this.admin.deleteCategory(key);
+    }
   }
 
   logout(): void {

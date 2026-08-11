@@ -3,7 +3,8 @@ export type Phase =
   | "lobby"
   | "round"
   | "voting"
-  | "reveal"
+  | "result"
+  | "gameover"
   | "waiting";
 export type Role = "player" | "impostor";
 
@@ -11,6 +12,7 @@ export interface Player {
   id: string;
   name: string;
   connected: boolean;
+  eliminated?: boolean;
 }
 export interface RoomConfig {
   impostors: number;
@@ -19,6 +21,7 @@ export interface RoomConfig {
   timer: number;
   voting: boolean;
   impostorHint: boolean;
+  hostPlays: boolean;
 }
 export interface Room {
   code: string;
@@ -45,12 +48,14 @@ export interface Ballot {
   to: string;
 }
 export interface RevealData {
-  impostors: Array<{ id: string; name: string }>;
+  eliminated: { id: string; name: string } | null;
+  tied: boolean;
   votes: VoteResult[];
   ballots: Ballot[];
-  word: string;
-  category: string;
   round: number;
+  gameOver: boolean;
+  reason?: string;
+  impostors?: Array<{ id: string; name: string }>;
 }
 export interface Ack {
   ok?: boolean;

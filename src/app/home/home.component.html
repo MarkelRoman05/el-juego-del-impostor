@@ -4,8 +4,8 @@
     <h1>El Impostor</h1>
   </header>
   <div class="card form-card">
-    <label for="name">Tu nombre</label><input id="name" [(ngModel)]="name" maxlength="20" placeholder="Escribe un nombre..."
-      autocomplete="off" (keydown.enter)="create()">
+    <label for="name">Tu nombre</label><input id="name" [(ngModel)]="name" maxlength="20"
+      placeholder="Escribe un nombre..." autocomplete="off" (keydown.enter)="create()">
     <button class="btn primary big" (click)="create()"><impostor-icon name="game" /> Crear partida</button>
     <div class="divider"><span>o únete con un código</span></div>
     <div class="join-row"><input class="code-input" [ngModel]="code" (ngModelChange)="setCode($event)" maxlength="4"

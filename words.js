@@ -92,14 +92,6 @@ const CATEGORIES = {
       'cuerda', 'botella', 'sombrero', 'guantes', 'mando', 'auriculares'
     ]
   },
-  naturaleza: {
-    label: 'Naturaleza',
-    words: [
-      'volcán', 'cascada', 'desierto', 'glaciar', 'selva', 'huracán', 'arcoíris',
-      'montaña', 'lago', 'playa', 'cueva', 'bosque', 'río', 'isla',
-      'aurora boreal', 'tornado', 'oasis', 'arrecife', 'pradera', 'niebla'
-    ]
-  },
   tecnologia: {
     label: 'Tecnología',
     words: [
@@ -108,14 +100,6 @@ const CATEGORIES = {
       'contraseña', 'batería', 'pantalla táctil', 'auriculares inalámbricos',
       'inteligencia artificial', 'navegador web', 'memoria USB', 'disco duro',
       'cámara digital', 'videojuego'
-    ]
-  },
-  musica: {
-    label: 'Música',
-    words: [
-      'guitarra', 'piano', 'batería', 'violín', 'saxofón', 'rap', 'ópera',
-      'karaoke', 'reggaetón', 'rock and roll', 'jazz', 'flamenco', 'coro',
-      'DJ', 'concierto', 'tambor', 'arpa', 'trompeta', 'música clásica', 'pop'
     ]
   },
   mezcla: {

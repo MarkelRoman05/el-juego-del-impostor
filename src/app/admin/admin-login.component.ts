@@ -42,7 +42,7 @@ import { IconComponent } from "../icon/icon.component";
           @if (admin.error()) {
             <p class="error-msg">{{ admin.error() }}</p>
           }
-          <button type="submit" class="btn primary big" [disabled]="admin.loading()">
+          <button type="submit" class="btn primary big" style="margin-top: 13px;" [disabled]="admin.loading()">
             <impostor-icon name="lock" />
             {{ admin.loading() ? "Entrando..." : "Entrar" }}
           </button>

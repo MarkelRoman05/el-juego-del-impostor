@@ -64,8 +64,23 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
   await wait(400);
   const p1b = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(p1b, 'connect');
+  const restoredRole = onEvent(p1b, 'round:started');
   const re = await emitAckP(p1b, 'room:join', { code, name: 'P1', playerId: p1OldId });
   check('reconexión a mitad de ronda permitida', re.ok === true, JSON.stringify(re));
+  const role = await restoredRole;
+  check('rol restaurado tras reconexión', role.round === 1 && ['player', 'impostor'].includes(role.role));
+
+  // Una segunda recarga debe seguir funcionando con el nuevo socketId.
+  const p1NewId = p1b.id;
+  p1b.close();
+  await wait(400);
+  const p1c = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
+  await onEvent(p1c, 'connect');
+  const restoredAgain = onEvent(p1c, 'round:started');
+  const re2 = await emitAckP(p1c, 'room:join', { code, name: 'P1', playerId: p1NewId });
+  check('segunda reconexión a mitad de ronda permitida', re2.ok === true, JSON.stringify(re2));
+  await restoredAgain;
+  p1c.close();
 
   console.log(fails === 0 ? '\n✅ TODO OK' : `\n❌ ${fails} fallos`);
   process.exit(fails === 0 ? 0 : 1);

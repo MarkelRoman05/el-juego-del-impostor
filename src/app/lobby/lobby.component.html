@@ -4,8 +4,10 @@
             <p class="eyebrow">CÓDIGO DE PARTIDA</p>
             <div class="code">{{ game.room()?.code }}</div>
             <div class="code-actions">
-                <button class="btn small" (click)="game.copyCode()"><impostor-icon name="clipboard" /> Copiar código</button>
-                <button class="btn small" (click)="game.copyLink()"><impostor-icon name="share" /> Copiar enlace</button>
+                <button class="btn small" (click)="game.copyCode()"><impostor-icon name="clipboard" /> Copiar
+                    código</button>
+                <button class="btn small" (click)="game.copyLink()"><impostor-icon name="share" /> Copiar
+                    enlace</button>
             </div>
         </div>
         <div class="players"><span class="player-chip" [class.me]="player.id === game.me()"
@@ -21,14 +23,26 @@
                         [disabled]="!isHost() || game.room()!.config.impostors >= maxImpostors()"
                         (click)="setConfig('impostors', game.room()!.config.impostors + 1)">+</button></div>
             </div>
-            <div class="category-config"><div class="config-row"><span><impostor-icon name="books" /> Categorías</span><b class="value">{{ isAllCategoriesSelected() ? 'Todas' : selectedCategories().length + ' seleccionadas' }}</b></div>
-                <label class="check-option"><input type="checkbox" [disabled]="!isHost()" [ngModel]="isAllCategoriesSelected()" (ngModelChange)="setAllCategories($event)"><span>Todas</span></label>
-                <label class="check-option" *ngFor="let category of categories"><input type="checkbox" [disabled]="!isHost()" [ngModel]="isCategorySelected(category[0])" (ngModelChange)="setCategory(category[0], $event)"><span>{{ category[1] }}</span></label>
+            <div class="category-config">
+                <div class="config-row"><span><impostor-icon name="books" /> Categorías</span><b class="value">{{
+                        isAllCategoriesSelected() ? 'Todas' : selectedCategories().length + ' seleccionadas' }}</b>
+                </div>
+                <label class="check-option"><input type="checkbox" [disabled]="!isHost()"
+                        [ngModel]="isAllCategoriesSelected()"
+                        (ngModelChange)="setAllCategories($event)"><span>Todas</span></label>
+                <label class="check-option" *ngFor="let category of categories()"><input type="checkbox"
+                        [disabled]="!isHost()" [ngModel]="isCategorySelected(category[0])"
+                        (ngModelChange)="setCategory(category[0], $event)"><span>{{ category[1] }}</span></label>
             </div>
-            <div class="config-row"><span><impostor-icon name="detective" /> Pista al impostor</span><label class="switch"><input type="checkbox"
-                        [disabled]="!isHost()" [ngModel]="game.room()?.config?.impostorHint"
+            <div class="config-row"><span><impostor-icon name="detective" /> Pista al impostor</span><label
+                    class="switch"><input type="checkbox" [disabled]="!isHost()"
+                        [ngModel]="game.room()?.config?.impostorHint"
                         (ngModelChange)="setConfig('impostorHint', $event)"><i></i></label></div>
-        </div><button class="btn primary big" [disabled]="!isHost() || connectedPlayers() < 3" (click)="game.start()"><impostor-icon name="play" />
+            @if (isHost()) {<div class="config-row"><span><impostor-icon name="game" /> ¿Quieres jugar?</span><label
+                    class="switch"><input type="checkbox" [ngModel]="game.room()?.config?.hostPlays !== false"
+                        (ngModelChange)="setConfig('hostPlays', $event)"><i></i></label></div>}
+        </div><button class="btn primary big" [disabled]="!isHost() || connectedPlayers() < 3 || !hasSelectedCategory()"
+            (click)="game.start()"><impostor-icon name="play" />
             Empezar ronda</button>
         <p class="hint">@if (!isHost()) { Esperando al anfitrión… } @else if (connectedPlayers() < 3) { Hacen falta al
                 menos 3 jugadores } @else { {{ connectedPlayers() }} jugadores listos }</p><button class="btn ghost"

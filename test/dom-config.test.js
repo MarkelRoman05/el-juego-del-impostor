@@ -19,7 +19,7 @@ check('el estado de roles vive en señales Angular', service.includes("readonly 
 check('la reconexión se centraliza en un único intento', service.includes('private rejoinInProgress = false') && service.includes('rejoinOnce()'));
 check('la sesión local se intenta recuperar automáticamente', service.includes('const session = this.loadSession()') && service.includes('session.playerId'));
 check('la recarga muestra el estado durante la recuperación', service.includes('this.restoringSession = Boolean(session.code && session.playerId && session.name)') && service.includes('this.restoringSession = false'));
-check('la recarga reintenta si el socket anterior sigue conectado', service.includes('/otra pestaña/') && service.includes('attempt < 5'));
+check('la recarga reintenta si el socket anterior sigue conectado', service.includes('/otra pestaña/') && service.includes('scheduleRejoin(attempt + 1)'));
 check('la interfaz no usa innerHTML', !html.includes('innerHTML'));
 
 console.log(fails === 0 ? '\n✅ TODO OK' : `\n❌ ${fails} fallos`);

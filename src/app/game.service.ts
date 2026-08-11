@@ -22,6 +22,7 @@ export class GameService {
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private rejoinInProgress = false;
   private rejoinTimeout: ReturnType<typeof setTimeout> | undefined;
+  private rejoinRetry: ReturnType<typeof setTimeout> | undefined;
   private everConnected = false;
   private restoringSession = false;
 
@@ -33,8 +34,9 @@ export class GameService {
     this.socket.on("connect", () => {
       this.connected.set(true);
       clearTimeout(this.rejoinTimeout);
+      clearTimeout(this.rejoinRetry);
       this.rejoinInProgress = false;
-      if (!this.restoringSession) this.reconnecting.set(false);
+      this.reconnecting.set(Boolean(this.loadSession().code));
       this.everConnected = true;
       this.rejoinOnce();
     });
@@ -60,7 +62,11 @@ export class GameService {
         history.replaceState(null, "", `/?c=${room.code}`);
       },
     );
-    this.socket.on("lobby:update", (room: Room) => this.room.set(room));
+    this.socket.on("lobby:update", (room: Room) => {
+      const previous = this.room();
+      if (previous?.code === room.code) this.notifyPlayerChanges(previous, room);
+      this.room.set(room);
+    });
     this.socket.on(
       "phase:changed",
       ({
@@ -86,9 +92,13 @@ export class GameService {
       this.roundStartedAt.set(Date.now());
       this.phase.set("round");
     });
-    this.socket.on("round:reveal", (data: RevealData) => {
+    this.socket.on("round:result", (data: RevealData) => {
       this.reveal.set(data);
-      this.phase.set("reveal");
+      this.phase.set("result");
+    });
+    this.socket.on("game:over", (data: RevealData) => {
+      this.reveal.set(data);
+      this.phase.set("gameover");
     });
     this.socket.on("kicked", () => {
       this.clearSession();
@@ -101,7 +111,6 @@ export class GameService {
       this.reset();
       this.notify("La partida ha terminado");
     });
-    this.rejoinOnce();
   }
 
   create(name: string): void {
@@ -128,6 +137,9 @@ export class GameService {
   }
 
   configure(config: Record<string, string | number | boolean>): void {
+    this.room.update((room) => room
+      ? { ...room, config: { ...room.config, ...config } }
+      : room);
     this.socket.emit("config:set", config);
   }
   start(): void {
@@ -145,6 +157,11 @@ export class GameService {
   }
   nextRound(): void {
     this.socket.emit("round:next");
+  }
+  markImpostor(playerId: string): void {
+    this.socket.emit("impostor:mark", { playerId }, (res: Ack) => {
+      if (res?.error) this.notify(res.error);
+    });
   }
   vote(targetId: string): void {
     if (this.votedFor()) return;
@@ -186,19 +203,48 @@ export class GameService {
   name(): string {
     return this.loadSession().name ?? "";
   }
+  isEliminated(): boolean {
+    const me = this.me();
+    return Boolean(me && this.room()?.players.find((player) => player.id === me)?.eliminated);
+  }
+  isObserver(): boolean {
+    return this.isEliminated() || (
+      this.me() === this.room()?.hostId && this.room()?.config.hostPlays === false
+    );
+  }
 
   private phaseFor(value: string): Phase {
-    return ["lobby", "round", "voting", "reveal"].includes(value)
+    return ["lobby", "round", "voting", "result", "gameover"].includes(value)
       ? (value as Phase)
       : "waiting";
   }
+  private notifyPlayerChanges(previous: Room, current: Room): void {
+    const previousPlayers = new Map(previous.players.map((player) => [player.name, player]));
+    const currentPlayers = new Map(current.players.map((player) => [player.name, player]));
+
+    for (const [name, player] of currentPlayers) {
+      const oldPlayer = previousPlayers.get(name);
+      if (!oldPlayer) {
+        this.notify(`${name} se ha unido a la partida`);
+      } else if (!oldPlayer.connected && player.connected) {
+        this.notify(`${name} se ha reconectado`);
+      }
+    }
+    for (const [name, player] of previousPlayers) {
+      const currentPlayer = currentPlayers.get(name);
+      if (player.connected && (!currentPlayer || !currentPlayer.connected)) {
+        this.notify(`${name} ha dejado la partida`);
+      }
+    }
+  }
   private rejoinOnce(attempt = 0): void {
-    if (this.rejoinInProgress) return;
+    if (this.rejoinInProgress || !this.connected()) return;
     const session = this.loadSession();
     if (!session.code || !session.playerId || !session.name) return;
     this.rejoinInProgress = true;
     this.rejoinTimeout = setTimeout(() => {
       this.rejoinInProgress = false;
+      if (this.connected()) this.scheduleRejoin(attempt + 1);
     }, 10000);
     this.socket.emit(
       "room:join",
@@ -210,9 +256,12 @@ export class GameService {
       (res: Ack) => {
         clearTimeout(this.rejoinTimeout);
         this.rejoinInProgress = false;
-        if (!res) return;
-        if (res.error && /otra pestaña/.test(res.error) && attempt < 5) {
-          setTimeout(() => this.rejoinOnce(attempt + 1), 400 + attempt * 300);
+        if (!res) {
+          if (this.connected()) this.scheduleRejoin(attempt + 1);
+          return;
+        }
+        if (res.error && /otra pestaña/.test(res.error)) {
+          this.scheduleRejoin(attempt + 1);
           return;
         }
         if (res.error) {
@@ -224,6 +273,13 @@ export class GameService {
           }
         }
       },
+    );
+  }
+  private scheduleRejoin(attempt: number): void {
+    clearTimeout(this.rejoinRetry);
+    this.rejoinRetry = setTimeout(
+      () => this.rejoinOnce(attempt),
+      Math.min(3000, 400 + attempt * 300),
     );
   }
   private loadSession(): { name?: string; code?: string; playerId?: string } {

@@ -36,6 +36,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist', 'el-impostor', 'browser'), { maxAge: '1h' }));
 app.get('/healthz', (_req, res) => res.json({ ok: true, uptime: Math.round(process.uptime()) }));
 
+app.get('/api/categories', (_req, res) => {
+  res.json({ categories: getAllCategories() });
+});
+
 /* ------------------------------------------------------------------ */
 /* admin: endpoints                                                    */
 /* ------------------------------------------------------------------ */
@@ -47,21 +51,6 @@ app.post('/api/admin/login', (req, res) => {
     return res.json({ token });
   }
   res.status(401).json({ error: 'Credenciales incorrectas' });
-});
-
-app.get('/api/admin/config', adminAuth, (_req, res) => {
-  res.json({
-    globalCustomWords: adminConfig.globalCustomWords,
-    words: parseCustomWords(adminConfig.globalCustomWords),
-  });
-});
-
-app.put('/api/admin/config', adminAuth, (req, res) => {
-  if (typeof req.body.globalCustomWords === 'string') {
-    adminConfig.globalCustomWords = req.body.globalCustomWords.slice(0, 10000);
-    saveAdminConfig(adminConfig);
-  }
-  res.json({ ok: true, words: parseCustomWords(adminConfig.globalCustomWords) });
 });
 
 app.get('/api/admin/rooms', adminAuth, (_req, res) => {
@@ -93,6 +82,60 @@ app.delete('/api/admin/rooms/:code', adminAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/admin/categories', adminAuth, (_req, res) => {
+  res.json({ categories: getAdminCategories() });
+});
+
+app.post('/api/admin/categories', adminAuth, (req, res) => {
+  const { key, label, words } = req.body || {};
+  const cleanKey = sanitizeCategoryKey(key);
+  if (!cleanKey) return res.status(400).json({ error: 'Clave de categoría inválida' });
+  if (CATEGORIES[cleanKey]) return res.status(400).json({ error: 'Esa categoría ya existe como built-in' });
+  if (!adminConfig.customCategories) adminConfig.customCategories = {};
+  if (adminConfig.customCategories[cleanKey]) return res.status(400).json({ error: 'Esa categoría personalizada ya existe' });
+  const cleanLabel = typeof label === 'string' ? label.trim().slice(0, 30) : '';
+  if (!cleanLabel) return res.status(400).json({ error: 'El nombre es obligatorio' });
+  const cleanWords = Array.isArray(words)
+    ? [...new Set(words.map((w) => String(w).trim()).filter((w) => w.length >= 2 && w.length <= 40))].slice(0, 200)
+    : [];
+  if (!cleanWords.length) return res.status(400).json({ error: 'Añade al menos una palabra' });
+  adminConfig.customCategories[cleanKey] = { label: cleanLabel, words: cleanWords };
+  saveAdminConfig(adminConfig);
+  res.json({ ok: true, categories: getAdminCategories() });
+});
+
+app.put('/api/admin/categories/:key', adminAuth, (req, res) => {
+  const key = sanitizeCategoryKey(req.params.key);
+  const isBuiltIn = Boolean(CATEGORIES[key] && key !== 'mezcla');
+  const isCustom = Boolean(adminConfig.customCategories?.[key]);
+  if (!isBuiltIn && !isCustom) return res.status(404).json({ error: 'Categoría no encontrada' });
+  const { label, words } = req.body || {};
+  const category = isBuiltIn
+    ? (adminConfig.categoryOverrides[key] ||= { label: CATEGORIES[key].label, words: [...CATEGORIES[key].words] })
+    : adminConfig.customCategories[key];
+  if (typeof label === 'string' && label.trim()) {
+    category.label = label.trim().slice(0, 30);
+  }
+  if (Array.isArray(words)) {
+    category.words = cleanCategoryWords(words);
+  }
+  saveAdminConfig(adminConfig);
+  res.json({ ok: true, categories: getAdminCategories() });
+});
+
+app.delete('/api/admin/categories/:key', adminAuth, (req, res) => {
+  const key = sanitizeCategoryKey(req.params.key);
+  if (!adminConfig.customCategories?.[key]) return res.status(404).json({ error: 'Categoría no encontrada' });
+  delete adminConfig.customCategories[key];
+  saveAdminConfig(adminConfig);
+  for (const room of rooms.values()) {
+    const keys = room.config.category.split(',').filter((k) => k !== key);
+    room.config.category = keys.length ? keys.join(',') : 'animales';
+    broadcastLobby(room);
+  }
+  res.json({ ok: true, categories: getAdminCategories() });
+});
+
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
 /* ------------------------------------------------------------------ */
@@ -117,6 +160,43 @@ const parseCustomWords = (raw) => {
     raw.split(/[\n,;]+/).map((w) => w.trim()).filter((w) => w.length >= 2 && w.length <= 40)
   )].slice(0, 200);
 };
+const sanitizeCategoryKey = (raw) => {
+  if (typeof raw !== 'string') return '';
+  const key = raw.trim().toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30);
+  return key.length >= 2 ? key : '';
+};
+const cleanCategoryWords = (words) => [...new Set(
+  words.map((w) => String(w).trim()).filter((w) => w.length >= 2 && w.length <= 40)
+)].slice(0, 200);
+function getAllCategories() {
+  const builtIn = {};
+  for (const [key, cat] of Object.entries(CATEGORIES)) {
+    if (key === 'mezcla') continue;
+    const override = adminConfig.categoryOverrides?.[key];
+    builtIn[key] = { label: override?.label || cat.label, custom: false };
+  }
+  const custom = {};
+  for (const [key, cat] of Object.entries(adminConfig.customCategories || {})) {
+    custom[key] = { label: cat.label, custom: true };
+  }
+  return { ...builtIn, ...custom };
+}
+function getAdminCategories() {
+  const categories = {};
+  for (const [key, cat] of Object.entries(CATEGORIES)) {
+    if (key === 'mezcla') continue;
+    const override = adminConfig.categoryOverrides?.[key];
+    categories[key] = {
+      label: override?.label || cat.label,
+      words: [...(override?.words || cat.words)],
+      custom: false,
+    };
+  }
+  for (const [key, cat] of Object.entries(adminConfig.customCategories || {})) {
+    categories[key] = { label: cat.label, words: [...cat.words], custom: true };
+  }
+  return categories;
+}
 
 /* ------------------------------------------------------------------ */
 /* admin: tokens y configuración                                       */
@@ -147,7 +227,7 @@ function loadAdminConfig() {
       return JSON.parse(fs.readFileSync(ADMIN_CONFIG_FILE, 'utf8'));
     }
   } catch {}
-  return { globalCustomWords: '' };
+  return { customCategories: {}, categoryOverrides: {} };
 }
 
 function saveAdminConfig(config) {
@@ -156,6 +236,8 @@ function saveAdminConfig(config) {
 }
 
 let adminConfig = loadAdminConfig();
+adminConfig.customCategories ||= {};
+adminConfig.categoryOverrides ||= {};
 loadAdminTokens();
 
 function generateAdminToken() {
@@ -216,13 +298,14 @@ function createRoom(hostId, hostName) {
   const room = {
     code,
     hostId,
-    phase: 'lobby',           // lobby | round | voting | reveal
+    phase: 'lobby',           // lobby | round | voting | result | gameover
     round: 0,
     players: new Map(),       // id -> { id, name, connected }
-    config: { impostors: 1, category: 'animales', customWords: '', timer: 0, voting: true, impostorHint: false },
+    config: { impostors: 1, category: 'animales', customWords: '', timer: 0, voting: true, impostorHint: false, hostPlays: true },
     word: null,
     categoryLabel: null,
     impostorIds: null,        // Set<id>
+    eliminatedIds: new Set(),
     roleByPlayer: new Map(),  // id -> payload privado de la ronda (para reconexiones)
     usedWords: [],
     votes: new Map(),         // voterId -> targetId
@@ -264,24 +347,30 @@ function serializeRoom(room) {
       timer: room.config.timer,
       voting: room.config.voting,
       impostorHint: room.config.impostorHint,
+      hostPlays: room.config.hostPlays !== false,
       // Privacidad: las palabras personalizadas NUNCA se serializan; solo su número
       customWordsCount: parseCustomWords(room.config.customWords).length,
     },
-    players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, connected: p.connected })),
+     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, connected: p.connected, eliminated: room.eliminatedIds.has(p.id) })),
   };
 }
 
 function categoryKeys(value) {
-  if (value === 'mezcla') return [...Object.keys(CATEGORIES).filter((key) => key !== 'mezcla'), 'personalizadas'];
-  const keys = String(value || '').split(',').filter((key, index, list) => (CATEGORIES[key] || key === 'personalizadas') && key !== 'mezcla' && list.indexOf(key) === index);
+  if (value === 'mezcla') return [...Object.keys(CATEGORIES).filter((key) => key !== 'mezcla'), ...Object.keys(adminConfig.customCategories || {}), 'personalizadas'];
+  const keys = String(value || '').split(',').filter((key, index, list) => (CATEGORIES[key] || (adminConfig.customCategories || {})[key] || key === 'personalizadas') && key !== 'mezcla' && list.indexOf(key) === index);
   return keys.length ? keys : ['animales'];
 }
 
 function getWordPool(room) {
   const custom = parseCustomWords(room.config.customWords);
-  const globalCustom = parseCustomWords(adminConfig.globalCustomWords);
-  const pool = categoryKeys(room.config.category).flatMap((key) => key === 'personalizadas' ? custom : CATEGORIES[key].words);
-  const allWords = [...new Set([...globalCustom, ...pool])];
+  const customCats = adminConfig.customCategories || {};
+  const pool = categoryKeys(room.config.category).flatMap((key) => {
+    if (key === 'personalizadas') return custom;
+    if (customCats[key]) return customCats[key].words;
+    if (adminConfig.categoryOverrides?.[key]) return adminConfig.categoryOverrides[key].words;
+    return CATEGORIES[key] ? CATEGORIES[key].words : [];
+  });
+  const allWords = [...new Set(pool)];
   return allWords.length ? allWords : CATEGORIES.animales.words;
 }
 
@@ -325,19 +414,22 @@ function scheduleAdvance(room, ms, fn) {
 }
 
 function startRound(room) {
-  const connected = [...room.players.values()].filter((p) => p.connected);
+  const connected = [...room.players.values()].filter((p) => p.connected && !room.eliminatedIds.has(p.id));
   const impostors = clamp(room.config.impostors, 1, Math.min(MAX_IMPOSTORS, connected.length - 1));
   const word = pickWord(room);
-  const globalWords = parseCustomWords(adminConfig.globalCustomWords);
   const customWords = parseCustomWords(room.config.customWords);
   const categoryLabel = customWords.length
     ? 'Palabras personalizadas'
     : room.config.category === 'mezcla'
       ? 'Mezcla'
-      : categoryKeys(room.config.category).map((key) => key === 'personalizadas' ? 'Palabras personalizadas' : CATEGORIES[key].label).join(' + ');
+      : categoryKeys(room.config.category).map((key) => {
+          if (key === 'personalizadas') return 'Palabras personalizadas';
+          const customCats = adminConfig.customCategories || {};
+          if (customCats[key]) return customCats[key].label;
+          return adminConfig.categoryOverrides?.[key]?.label || (CATEGORIES[key] ? CATEGORIES[key].label : key);
+        }).join(' + ');
 
-  const ids = shuffle(connected.map((p) => p.id));
-  const impostorIds = new Set(ids.slice(0, impostors));
+  const impostorIds = room.impostorIds || new Set(shuffle(connected.map((p) => p.id)).slice(0, impostors));
 
   room.round += 1;
   room.word = word;
@@ -363,20 +455,19 @@ function startRound(room) {
 }
 
 function expectedVoters(room) {
-  return [...room.players.values()].filter((p) => p.connected).length;
+  return [...room.players.values()].filter((p) => p.connected && !room.eliminatedIds.has(p.id)).length;
 }
 
 function checkVotes(room) {
   if (room.phase !== 'voting') return;
-  if (room.votes.size >= expectedVoters(room)) doReveal(room);
+  if (room.votes.size >= expectedVoters(room)) resolveVotes(room);
 }
 
-function doReveal(room) {
+function resolveVotes(room) {
   clearAdvance(room);
-  if (room.phase === 'reveal') return;
+  if (room.phase === 'result' || room.phase === 'gameover') return;
 
   const playersById = Object.fromEntries([...room.players.entries()]);
-  const impostors = [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' }));
   const tally = new Map();
   const ballots = [];
   for (const [from, to] of room.votes) {
@@ -388,9 +479,23 @@ function doReveal(room) {
     .sort((a, b) => b.count - a.count);
 
   room.ballots = ballots;
-  room.revealData = { impostors, votes, ballots, word: room.word, category: room.categoryLabel, round: room.round };
-  setPhase(room, 'reveal');
-  io.to(room.code).emit('round:reveal', room.revealData);
+  const topCount = votes[0]?.count ?? 0;
+  const leaders = votes.filter((vote) => vote.count === topCount);
+  const eliminatedId = leaders.length === 1 ? leaders[0].id : null;
+  if (eliminatedId) room.eliminatedIds.add(eliminatedId);
+  const gameOver = Boolean(eliminatedId && room.impostorIds?.has(eliminatedId)) ||
+    [...room.players.values()].filter((player) => isPlayingPlayer(room, player.id) && !room.eliminatedIds.has(player.id)).length <= (room.impostorIds?.size ?? 1);
+  const result = { eliminated: eliminatedId ? { id: eliminatedId, name: playersById[eliminatedId]?.name ?? '?' } : null, tied: !eliminatedId, votes, ballots, round: room.round, gameOver };
+  room.revealData = result;
+  if (gameOver) {
+    result.impostors = [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' }));
+    setPhase(room, 'gameover');
+    io.to(room.code).emit('game:over', result);
+  } else {
+    setPhase(room, 'result');
+    io.to(room.code).emit('round:result', result);
+    broadcastLobby(room);
+  }
 }
 
 function resetToLobby(room) {
@@ -399,6 +504,7 @@ function resetToLobby(room) {
   room.word = null;
   room.categoryLabel = null;
   room.impostorIds = null;
+  room.eliminatedIds = new Set();
   room.roleByPlayer = new Map();
   room.votes = new Map();
   room.ballots = null;
@@ -442,6 +548,10 @@ io.on('connection', (socket) => {
       room.impostorIds.delete(oldId);
       room.impostorIds.add(newId);
     }
+    if (room.eliminatedIds.has(oldId)) {
+      room.eliminatedIds.delete(oldId);
+      room.eliminatedIds.add(newId);
+    }
     const role = room.roleByPlayer.get(oldId);
     if (role) {
       room.roleByPlayer.delete(oldId);
@@ -463,8 +573,8 @@ io.on('connection', (socket) => {
       const role = room.roleByPlayer.get(pid);
       if (role) sock.emit('round:started', role);
       sock.emit('phase:changed', { phase: 'voting', deadlineAt: room.votingDeadlineAt });
-    } else if (room.phase === 'reveal' && room.revealData) {
-      sock.emit('round:reveal', room.revealData);
+    } else if ((room.phase === 'result' || room.phase === 'gameover') && room.revealData) {
+      sock.emit(room.phase === 'gameover' ? 'game:over' : 'round:result', room.revealData);
     }
   }
 
@@ -539,6 +649,7 @@ io.on('connection', (socket) => {
       }
 
       p.name = clean;
+      p.id = socket.id;
       p.connected = true;
       room.players.delete(playerId);
       room.players.set(socket.id, p);
@@ -605,16 +716,17 @@ io.on('connection', (socket) => {
     // Aplica SOLO los campos presentes: cada control del cliente envía solo su campo,
     // así un cambio (p. ej. categoría) nunca pisa el valor recién puesto en el stepper.
     if (typeof cfg.impostors !== 'undefined') {
-      const connectedCount = [...room.players.values()].filter((p) => p.connected).length;
+      const connectedCount = [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id)).length;
       const maxImpostors = Math.max(1, Math.min(MAX_IMPOSTORS, connectedCount - 1));
       room.config.impostors = clamp(Number(cfg.impostors) || 1, 1, maxImpostors);
     }
     if (typeof cfg.category === 'string') room.config.category = cfg.category === 'mezcla'
       ? 'mezcla'
-      : categoryKeys(cfg.category).join(',');
+      : cfg.category.trim() ? categoryKeys(cfg.category).join(',') : '';
     if (typeof cfg.customWords === 'string') room.config.customWords = cfg.customWords.slice(0, 2000);
     if (typeof cfg.voting !== 'undefined') room.config.voting = cfg.voting !== false;
     if (typeof cfg.impostorHint !== 'undefined') room.config.impostorHint = cfg.impostorHint === true;
+    if (typeof cfg.hostPlays !== 'undefined') room.config.hostPlays = cfg.hostPlays !== false;
     room.lastActivity = Date.now();
     broadcastLobby(room);
     ackOk(ack);
@@ -644,8 +756,10 @@ io.on('connection', (socket) => {
     const room = getRoomOf(socket);
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede empezar');
     if (room.phase !== 'lobby') return ackErr(ack, 'Ya hay una ronda en curso');
-    const connected = [...room.players.values()].filter((p) => p.connected);
-    if (connected.length < MIN_PLAYERS) return ackErr(ack, `Se necesitan al menos ${MIN_PLAYERS} jugadores`);
+    const connected = [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id) && !room.eliminatedIds.has(p.id));
+    if (room.round === 0 && connected.length < MIN_PLAYERS) return ackErr(ack, `Se necesitan al menos ${MIN_PLAYERS} jugadores`);
+    if (connected.length < 2) return ackErr(ack, 'No quedan suficientes jugadores activos');
+    if (!String(room.config.category || '').trim()) return ackErr(ack, 'Selecciona al menos una categoría');
     startRound(room);
     ackOk(ack);
   });
@@ -655,8 +769,9 @@ io.on('connection', (socket) => {
     const pid = socket.data.playerId;
     if (!room || room.phase !== 'voting') return ackErr(ack, 'Todavía no se vota');
     if (!room.players.has(pid)) return ackErr(ack, 'No estás en la partida');
+    if (room.eliminatedIds.has(pid)) return ackErr(ack, 'Estás eliminado y solo puedes observar');
     if (targetId === pid) return ackErr(ack, 'No puedes votarte a ti mismo');
-    if (!room.players.has(targetId)) return ackErr(ack, 'Jugador no encontrado');
+    if (!room.players.has(targetId) || room.eliminatedIds.has(targetId)) return ackErr(ack, 'Jugador no encontrado');
     room.votes.set(pid, targetId);
     room.lastActivity = Date.now();
     ackOk(ack);
@@ -666,22 +781,48 @@ io.on('connection', (socket) => {
   socket.on('round:reveal', (ack) => {
     const room = getRoomOf(socket);
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede revelar');
-    if (room.phase === 'lobby' || room.phase === 'reveal') return ackOk(ack);
+    if (room.phase === 'lobby' || room.phase === 'result' || room.phase === 'gameover') return ackOk(ack);
     // con votación activa, "revelar" durante el debate = pasar a votación
     if (room.phase === 'round' && room.config.voting) {
       room.votingDeadlineAt = Date.now() + VOTE_TIME_MS;
       setPhase(room, 'voting', { deadlineAt: room.votingDeadlineAt });
-      scheduleAdvance(room, VOTE_TIME_MS, () => doReveal(room));
+      scheduleAdvance(room, VOTE_TIME_MS, () => resolveVotes(room));
       return ackOk(ack);
     }
-    doReveal(room);
+    resolveVotes(room);
     ackOk(ack);
   });
 
   socket.on('round:next', (ack) => {
     const room = getRoomOf(socket);
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede avanzar');
-    resetToLobby(room);
+    if (room.phase !== 'result' && room.phase !== 'gameover') return ackErr(ack, 'No hay una ronda que continuar');
+    if (room.phase === 'result') startRound(room);
+    else resetToLobby(room);
+    ackOk(ack);
+  });
+
+  socket.on('impostor:mark', ({ playerId } = {}, ack) => {
+    const room = getRoomOf(socket);
+    if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede marcar al impostor');
+    if (room.phase !== 'round' || !room.impostorIds?.has(playerId) || room.eliminatedIds.has(playerId)) {
+      return ackErr(ack, 'Ese jugador no es un impostor activo');
+    }
+    const playersById = Object.fromEntries([...room.players.entries()]);
+    const result = {
+      eliminated: null,
+      tied: false,
+      votes: [],
+      ballots: [],
+      round: room.round,
+      gameOver: true,
+      reason: 'correct-word',
+      impostors: [...room.impostorIds].map((id) => ({ id, name: playersById[id]?.name ?? '?' })),
+    };
+    room.revealData = result;
+    clearAdvance(room);
+    setPhase(room, 'gameover');
+    io.to(room.code).emit('game:over', result);
     ackOk(ack);
   });
 });
@@ -689,6 +830,15 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`[el-impostor] escuchando en :${PORT}`);
 });
+
+function shutdown() {
+  clearAdvance({});
+  for (const room of rooms.values()) clearAdvance(room);
+  io.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 3000);
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'el-impostor', 'browser', 'index.html'));
