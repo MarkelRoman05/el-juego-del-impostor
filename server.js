@@ -698,7 +698,7 @@ io.on('connection', (socket) => {
     }
   }
 
-  function leaveRoom() {
+  function leaveRoom(endIfEmpty = false) {
     const room = getRoomOf(socket);
     const pid = socket.data.playerId;
     socket.data.roomCode = null;
@@ -715,7 +715,7 @@ io.on('connection', (socket) => {
         room.hostId = next ? next.id : null;
       }
       room.lastActivity = Date.now();
-      if (![...room.players.values()].some((player) => player.connected)) {
+      if (endIfEmpty && ![...room.players.values()].some((player) => player.connected)) {
         endRoom(room);
         return;
       }
@@ -833,7 +833,7 @@ io.on('connection', (socket) => {
       endRoom(room);
       return ackOk(ack);
     }
-    leaveRoom();
+    leaveRoom(true);
     ackOk(ack);
   });
   socket.on('round:leave', (ack) => {
@@ -843,7 +843,7 @@ io.on('connection', (socket) => {
       endRoom(room);
       return ackOk(ack);
     }
-    leaveRoom();
+    leaveRoom(true);
     socket.emit('game:ended');
     ackOk(ack);
   });
@@ -853,7 +853,7 @@ io.on('connection', (socket) => {
     endRoom(room);
     ackOk(ack);
   });
-  socket.on('disconnect', leaveRoom);
+  socket.on('disconnect', () => leaveRoom(false));
 
   /* ---- lobby: configuración y expulsiones ---- */
 

@@ -29,40 +29,30 @@ const check = (condition, message) => {
 (async () => {
   const host = await connect();
   const joinedPromise = once(host, 'room:joined');
-  await ack(host, 'room:create', { name: 'Host vacío' });
+  const created = await ack(host, 'room:create', { name: 'Lobby-host' });
+  check(created.ok === true, 'la sala se crea en el lobby');
   const joined = await joinedPromise;
-  const players = [host];
+  const oldPlayerId = host.id;
+  const reconnectToken = joined.reconnectToken;
 
-  for (const name of ['P1 vacío', 'P2 vacío']) {
-    const socket = await connect();
-    const playerJoined = once(socket, 'room:joined');
-    const result = await ack(socket, 'room:join', {
-      code: joined.room.code,
-      name,
-      playerId: null,
-    });
-    check(result.ok === true, `${name} se une correctamente`);
-    await playerJoined;
-    players.push(socket);
-  }
-
-  const sessions = { playerId: host.id, reconnectToken: joined.reconnectToken };
-  const endedPromise = once(host, 'game:ended');
-  await ack(host, 'lobby:leave');
-  await endedPromise;
-  for (const socket of players.slice(1)) socket.disconnect();
+  host.disconnect();
   await wait(300);
 
-  const probe = await connect();
-  const result = await ack(probe, 'room:join', {
+  const replacement = await connect();
+  const rejoinedPromise = once(replacement, 'room:joined');
+  const result = await ack(replacement, 'room:join', {
     code: joined.room.code,
-    name: 'recovery-probe',
-    playerId: sessions.playerId,
-    reconnectToken: sessions.reconnectToken,
+    name: 'Lobby-host',
+    playerId: oldPlayerId,
+    reconnectToken,
   });
-  check(result.ok !== true && /Código no encontrado/.test(result.error || ''), 'la sala se elimina al quedar vacía');
-  probe.disconnect();
-  console.log('\n✅ TODO OK: las salas vacías terminan automáticamente');
+  check(result.ok === true, 'el host puede reconectar desde el lobby');
+  const rejoined = await rejoinedPromise;
+  check(rejoined.room.hostId === replacement.id, 'el host conserva el control en el lobby');
+  check(rejoined.room.phase === 'lobby', 'la sala sigue en lobby tras reconectar');
+
+  replacement.disconnect();
+  console.log('\n✅ TODO OK: reconexión del host en creación de sala verificada');
 })().catch((error) => {
   console.error(`\n❌ FALLO: ${error.message}`);
   process.exitCode = 1;
