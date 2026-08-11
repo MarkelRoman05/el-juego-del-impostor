@@ -25,7 +25,7 @@ const emitAck = (s, ev) => new Promise((res) => s.emit(ev, (r) => res(r || {})))
     extra.push(p);
   }
   await new Promise((r) => setTimeout(r, 300));
-  await emitAckP(host, 'config:set', { impostors: 1, timer: 0, voting: false });
+  await emitAckP(host, 'config:set', { impostors: 1, category: 'animales' });
 
   const ROUNDS = 60;
  let hostImpostor = null;

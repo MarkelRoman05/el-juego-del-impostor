@@ -157,7 +157,7 @@ app.delete('/api/admin/categories/:key', adminAuth, (req, res) => {
   saveAdminConfig(adminConfig);
   for (const room of rooms.values()) {
     const keys = room.config.category.split(',').filter((k) => k !== key);
-    room.config.category = keys.length ? keys.join(',') : 'animales';
+    room.config.category = keys.join(',');
     broadcastLobby(room);
   }
   res.json({ ok: true, categories: getAdminCategories() });
@@ -355,7 +355,7 @@ function createRoom(hostId, hostName) {
     phase: 'lobby',           // lobby | round | gameover
     round: 0,
     players: new Map(),       // id -> { id, name, connected, reconnectToken }
-    config: { impostors: 1, category: 'animales', customWords: '', impostorHint: false, hostPlays: true, hostWordFromCatalog: false },
+    config: { impostors: 1, category: '', customWords: '', impostorHint: false, hostPlays: true, hostWordFromCatalog: false },
     word: null,
     categoryLabel: null,
     impostorIds: null,        // Set<id>

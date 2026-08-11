@@ -38,7 +38,7 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
   await emitAckP(host, 'config:set', { impostors: 3 });
   let lu = await luP;
   check('solo {impostors:3} → clamp a 2', lu.config.impostors === 2, `impostors=${lu.config.impostors}`);
-   check('categoría intacta y sin pista', lu.config.category === 'animales' && lu.config.impostorHint === false && !('timer' in lu.config), JSON.stringify(lu.config));
+  check('sin categoría ni pista por defecto', lu.config.category === '' && lu.config.impostorHint === false && !('timer' in lu.config), JSON.stringify(lu.config));
 
   // 2) solo categoría: impostors DEBE seguir en 2
   luP = waitFor(host, 'lobby:update', (d) => d.config.category === 'cine');

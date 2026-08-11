@@ -72,8 +72,8 @@ export class LobbyComponent implements OnInit {
     if (value === "mezcla") {
       return this.categories().map(([key]) => key);
     }
-    const keys = value.split(",").filter(k => k.length > 0);
-    return keys;
+    const available = new Set(this.categories().map(([key]) => key));
+    return value.split(",").filter((key) => key.length > 0 && available.has(key));
   }
   isCategorySelected(key: string): boolean {
     return this.selectedCategories().includes(key);
@@ -88,7 +88,7 @@ export class LobbyComponent implements OnInit {
     const value = this.game.room()?.config.category ?? "";
     if (value === "mezcla") return true;
     const selected = this.selectedCategories();
-    return selected.length === this.categories().length;
+    return this.categories().length > 0 && selected.length === this.categories().length;
   }
   setAllCategories(checked: boolean): void {
     if (checked) {
