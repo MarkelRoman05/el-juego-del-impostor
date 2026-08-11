@@ -11,7 +11,7 @@
             <strong>{{ game.role()?.impostors?.join(', ') }}</strong>
         </div>
         }
-        @if (isHost()) {
+        @if (isHost() || game.isEliminated()) {
         <div class="vote-list live-votes">
             @for (vote of game.liveVotes(); track vote.from) {
             <div class="vote-btn">{{ vote.from }} vota a <b>{{ vote.to }}</b></div>

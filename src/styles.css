@@ -807,6 +807,20 @@ textarea:focus-visible {
   color: var(--ink);
   border-color: var(--pink);
 }
+.persistent-eliminated {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top));
+  left: 50%;
+  z-index: 10;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border: 1px solid #ff6b9680;
+  border-radius: 999px;
+  background: #2a1526;
+  color: var(--pink);
+  font: 700 12px "DM Mono", monospace;
+  letter-spacing: 1.5px;
+}
 .exact-word-config {
   display: flex;
   flex-direction: column;

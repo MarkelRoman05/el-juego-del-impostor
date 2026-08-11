@@ -10,6 +10,9 @@
     @case ('gameover') { <impostor-reveal /> }
     @case ('waiting') { <impostor-waiting /> }
     }
+    @if (game.isEliminated()) {
+      <div class="persistent-eliminated" role="status">ELIMINADO</div>
+    }
     @if (game.room() && game.phase() !== 'lobby') {
       <button class="persistent-exit" (click)="leaveGame()">
         {{ game.me() === game.room()?.hostId ? 'Finalizar partida' : 'Salir de la partida' }}

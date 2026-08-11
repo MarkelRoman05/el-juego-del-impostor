@@ -44,13 +44,16 @@
             <div class="category-chip">Categoría: {{ game.role()?.category }}</div>}
         </div>
         <div class="hold-hint">Suelta para ocultar</div>
-    </div>@if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar
-        a votación</button>
-    <p class="hint">¿Alguien ha dicho la palabra correcta?</p>
-    <div class="vote-list mark-list">@for (player of game.room()?.players; track player.id) {
-        @if (player.connected && !player.eliminated && isPlayingPlayer(player.id)) {
-        <button class="vote-btn" (click)="markImpostor(player.id)">Marcar a {{ player.name }} como impostor</button>
-        }
-    }</div>}
-    }
+     </div>@if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar
+         a votación</button>
+      }
+     }
+     @if (isHost()) {
+     <p class="hint">¿El impostor ha acertado la palabra? Márcalo para terminar la partida.</p>
+     <div class="vote-list mark-list">@for (player of game.room()?.players; track player.id) {
+         @if (player.connected && !player.eliminated && isPlayingPlayer(player.id)) {
+         <button class="vote-btn" (click)="markImpostor(player.id)"><impostor-icon name="detective" /> Marcar a {{ player.name }} como impostor</button>
+         }
+     }</div>
+     }
 </section>

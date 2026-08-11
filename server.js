@@ -645,6 +645,15 @@ io.on('connection', (socket) => {
     }));
   }
 
+  function broadcastLiveVotes(room) {
+    const votes = getLiveVotes(room);
+    for (const player of room.players.values()) {
+      const isHostObserver = player.id === room.hostId && room.config.hostPlays === false;
+      if (!player.connected || (!room.eliminatedIds.has(player.id) && !isHostObserver)) continue;
+      io.sockets.sockets.get(player.id)?.emit('vote:update', votes);
+    }
+  }
+
   function sendWordOptions(room, sock) {
     if (sock.id === room.hostId && room.config.hostPlays === false) {
       sock.emit('word:options', getCategoryWordOptions(room).sort((a, b) => a.localeCompare(b)));
@@ -663,7 +672,9 @@ io.on('connection', (socket) => {
       if (role) sock.emit('round:started', role);
       sock.emit('phase:changed', { phase: 'voting', deadlineAt: room.votingDeadlineAt });
       sock.emit('vote:state', { targetId: room.votes.get(pid) || null });
-      if (sock.id === room.hostId && room.config.hostPlays === false) sock.emit('vote:update', getLiveVotes(room));
+      if (room.eliminatedIds.has(pid) || (sock.id === room.hostId && room.config.hostPlays === false)) {
+        sock.emit('vote:update', getLiveVotes(room));
+      }
     } else if ((room.phase === 'result' || room.phase === 'gameover') && room.revealData) {
       sock.emit(room.phase === 'gameover' ? 'game:over' : 'round:result', room.revealData);
     }
@@ -892,10 +903,7 @@ io.on('connection', (socket) => {
     if (!room.players.has(targetId) || !isPlayingPlayer(room, targetId)) return ackErr(ack, 'Jugador no encontrado');
     room.votes.set(pid, targetId);
     room.lastActivity = Date.now();
-    if (room.config.hostPlays === false) {
-      const host = io.sockets.sockets.get(room.hostId);
-      if (host) host.emit('vote:update', getLiveVotes(room));
-    }
+    broadcastLiveVotes(room);
     ackOk(ack);
     checkVotes(room);
   });
@@ -928,9 +936,12 @@ io.on('connection', (socket) => {
   socket.on('impostor:mark', ({ playerId } = {}, ack) => {
     const room = getRoomOf(socket);
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede marcar al impostor');
-    if (room.phase !== 'round' || !room.impostorIds?.has(playerId) || room.eliminatedIds.has(playerId)) {
-      return ackErr(ack, 'Ese jugador no es un impostor activo');
+    if (room.phase !== 'round') return ackErr(ack, 'Solo puedes marcar durante la ronda');
+    const player = room.players.get(playerId);
+    if (!player || !player.connected || !isPlayingPlayer(room, playerId)) {
+      return ackErr(ack, 'Ese jugador ya no está activo');
     }
+    if (!room.impostorIds?.has(playerId)) return ackErr(ack, 'Ese jugador no es el impostor');
     const playersById = Object.fromEntries([...room.players.entries()]);
     const result = {
       eliminated: null,
