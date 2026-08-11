@@ -28,7 +28,8 @@
         [attr.aria-label]="revealed() ? 'Palabra secreta visible' : 'Mantén pulsado para ver la palabra'"
         [class.revealed]="revealed()" (pointerdown)="holdStart($event)" (pointerleave)="holdEnd()"
         (pointercancel)="holdEnd()" (keydown.space)="holdStart($event)" (keyup.space)="holdEnd()"
-        (keydown.enter)="revealed.set(!revealed())" (contextmenu)="$event.preventDefault()">
+        (keydown.enter)="revealed.set(!revealed())" (contextmenu)="$event.preventDefault()"
+        (selectstart)="$event.preventDefault()">
         <div class="hold-idle">
             <div class="lock"><impostor-icon name="lock" /></div>
             <div class="hold-text">Mantén pulsado<br>para ver la palabra</div>

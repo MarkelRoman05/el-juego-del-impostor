@@ -8,6 +8,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'src/app/app.component.html'), 'utf8');
 const round = fs.readFileSync(path.join(root, 'src/app/round/round.component.html'), 'utf8');
+const styles = fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8');
 const service = fs.readFileSync(path.join(root, 'src/app/game.service.ts'), 'utf8');
 const index = fs.readFileSync(path.join(root, 'dist/el-impostor/browser/index.html'), 'utf8');
 let fails = 0;
@@ -21,6 +22,7 @@ check('la sesión local se intenta recuperar automáticamente', service.includes
 check('la recarga muestra el estado durante la recuperación', service.includes('this.restoringSession = Boolean(session.code && session.playerId && session.reconnectToken && session.name)') && service.includes('this.restoringSession = false'));
 check('la recarga reintenta si el socket anterior sigue conectado', service.includes('/otra pestaña/') && service.includes('scheduleRejoin(attempt + 1)'));
 check('la interfaz no usa innerHTML', !html.includes('innerHTML'));
+check('el recuadro secreto no permite seleccionar texto', round.includes('(selectstart)') && styles.includes('.hold-card') && styles.includes('user-select: none'));
 
 console.log(fails === 0 ? '\n✅ TODO OK' : `\n❌ ${fails} fallos`);
 process.exit(fails === 0 ? 0 : 1);
