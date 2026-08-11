@@ -250,8 +250,14 @@ function loadAdminTokens() {
 
 function saveAdminTokens() {
   const data = Object.fromEntries([...adminTokens.entries()].filter(([, exp]) => exp > Date.now()));
-  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
-  fs.writeFileSync(ADMIN_TOKEN_FILE, JSON.stringify(data), 'utf8');
+  writeJsonFile(ADMIN_TOKEN_FILE, data);
+}
+
+function writeJsonFile(file, data) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const temporary = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(data, null, 2), 'utf8');
+  fs.renameSync(temporary, file);
 }
 
 function loadAdminConfig() {
@@ -264,14 +270,16 @@ function loadAdminConfig() {
 }
 
 function saveAdminConfig(config) {
-  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
-  fs.writeFileSync(ADMIN_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+  writeJsonFile(ADMIN_CONFIG_FILE, config);
 }
 
 let adminConfig = loadAdminConfig();
 adminConfig.customCategories ||= {};
 adminConfig.categoryOverrides ||= {};
 adminConfig.disabledCategories ||= {};
+if (process.env.ADMIN_USER && process.env.ADMIN_PASS) {
+  writeJsonFile(ADMIN_CREDENTIALS_FILE, { username: ADMIN_USER, password: ADMIN_PASS });
+}
 loadAdminTokens();
 
 function generateAdminToken() {
