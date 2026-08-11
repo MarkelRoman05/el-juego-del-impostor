@@ -607,6 +607,8 @@ textarea::placeholder {
   background: var(--panel);
   cursor: pointer;
   touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .hold-card.revealed {
   border-color: var(--violet);
