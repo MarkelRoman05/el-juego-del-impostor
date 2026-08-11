@@ -55,19 +55,50 @@ import { IconComponent } from "../icon/icon.component";
                 [(ngModel)]="editLabel"
                 placeholder="Nombre de la categoría"
                  [disabled]="admin.loading()"
-              />
-              <label class="field-label">Palabras</label>
-              <textarea
-                [(ngModel)]="editWords"
-                placeholder="Separa con comas, punto y coma o saltos de línea"
-                rows="8"
-                [disabled]="admin.loading()"
-              ></textarea>
-              <div class="words-stats">
-                <span>{{ editWordList().length }} palabras</span>
-              </div>
-              <div class="card-actions">
-                <button class="btn primary" (click)="saveEditingCategory()" [disabled]="admin.loading()">
+               />
+               <label class="field-label">Palabras</label>
+               <div class="word-list" aria-label="Palabras de la categoría">
+                 @for (word of editWords; track $index) {
+                   <div class="word-row">
+                     <input
+                       type="text"
+                       [ngModel]="word"
+                       (ngModelChange)="changeWord($index, $event)"
+                       [disabled]="admin.loading()"
+                       [attr.aria-label]="'Palabra ' + ($index + 1)"
+                     />
+                     <button
+                       type="button"
+                       class="btn danger small word-delete"
+                       (click)="removeWord($index)"
+                       [disabled]="admin.loading()"
+                       [attr.aria-label]="'Borrar ' + word"
+                     >
+                       Borrar
+                     </button>
+                   </div>
+                 }
+               </div>
+               <div class="add-word">
+                 <input
+                   type="text"
+                   [(ngModel)]="newWord"
+                   (keyup.enter)="addWord()"
+                   placeholder="Añadir palabra"
+                   [disabled]="admin.loading()"
+                 />
+                 <button type="button" class="btn small" (click)="addWord()" [disabled]="admin.loading() || !newWord.trim()">
+                   Añadir
+                 </button>
+               </div>
+               <div class="words-stats">
+                 <span>{{ editWords.length }} palabras</span>
+               </div>
+               @if (hasDuplicateWords(editWords)) {
+                 <p class="error-msg">No puede haber palabras duplicadas.</p>
+               }
+               <div class="card-actions">
+                 <button class="btn primary" (click)="saveEditingCategory()" [disabled]="admin.loading() || hasDuplicateWords(editWords)">
                   {{ admin.loading() ? "Guardando..." : "Guardar" }}
                 </button>
                 <button class="btn ghost" (click)="editingCategory.set(null)">Cancelar</button>
@@ -215,20 +246,35 @@ import { IconComponent } from "../icon/icon.component";
       color: var(--yellow);
       font-weight: 600;
     }
-    .word-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    .word-tag {
-      padding: 5px 10px;
-      background: #11131b;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      font-size: 12px;
-      color: var(--muted);
+     .word-list {
+       display: flex;
+       flex-direction: column;
+       gap: 8px;
+       max-height: 360px;
+       overflow-y: auto;
+       padding: 2px 10px 2px 2px;
+       scrollbar-gutter: stable;
+     }
+     .word-row {
+       display: flex;
+       gap: 8px;
+       align-items: center;
+     }
+     .word-row input {
+       min-width: 0;
+       flex: 1;
+     }
+     .word-delete {
+       flex: 0 0 auto;
+     }
+     .add-word {
+       display: flex;
+       gap: 8px;
+       margin-top: 8px;
+     }
+     .add-word input {
+       min-width: 0;
+       flex: 1;
     }
     .rooms-list {
       display: flex;
@@ -284,10 +330,6 @@ import { IconComponent } from "../icon/icon.component";
       border: 1px solid #ff6b9680;
       border-radius: 8px;
     }
-    textarea {
-      resize: vertical;
-      min-height: 150px;
-    }
     .field-label {
       display: block;
       font-size: 12px;
@@ -303,9 +345,10 @@ export class AdminPanelComponent implements OnInit {
   readonly activeTab = signal<"categories" | "rooms">("categories");
   readonly editingCategory = signal<string | null>(null);
 
-  editLabel = "";
-  editWords = "";
-  private editKey = "";
+   editLabel = "";
+   editWords: string[] = [];
+   newWord = "";
+   private editKey = "";
 
   async ngOnInit(): Promise<void> {
     if (!this.admin.isAuthenticated()) {
@@ -356,34 +399,53 @@ export class AdminPanelComponent implements OnInit {
     }));
   }
 
-  editWordList(): string[] {
-    return this.editWords
-      .split(/[\n,;]+/)
-      .map((w) => w.trim())
-      .filter((w) => w.length >= 2 && w.length <= 40)
-      .filter((w, i, arr) => arr.indexOf(w) === i);
-  }
-
-  startNewCategory(): void {
-    this.editKey = "";
-    this.editLabel = "";
-    this.editWords = "";
-    this.editingCategory.set("__new__");
+   startNewCategory(): void {
+     this.editKey = "";
+     this.editLabel = "";
+     this.editWords = [];
+     this.newWord = "";
+     this.editingCategory.set("__new__");
   }
 
   startEditCategory(key: string): void {
     const cat = this.admin.categories()[key];
     if (!cat) return;
-    this.editKey = key;
-    this.editLabel = cat.label;
-    this.editWords = cat.words.join(", ");
-    this.editingCategory.set(key);
-  }
+     this.editKey = key;
+     this.editLabel = cat.label;
+     this.editWords = [...cat.words];
+     this.newWord = "";
+     this.editingCategory.set(key);
+   }
 
-  async saveEditingCategory(): Promise<void> {
-    const words = this.editWordList();
-    if (!this.editLabel.trim() || !words.length) return;
-    if (this.editingCategory() === "__new__") {
+   addWord(): void {
+     const word = this.newWord.trim();
+     if (!word || word.length < 2 || word.length > 40 || this.hasDuplicate(word)) return;
+     this.editWords = [...this.editWords, word];
+     this.newWord = "";
+   }
+
+   changeWord(index: number, value: string): void {
+     this.editWords = this.editWords.map((word, i) => i === index ? value : word);
+   }
+
+   removeWord(index: number): void {
+     this.editWords = this.editWords.filter((_, i) => i !== index);
+   }
+
+   private hasDuplicate(word: string, exceptIndex = -1): boolean {
+     const normalized = word.trim().toLocaleLowerCase();
+     return this.editWords.some((current, index) => index !== exceptIndex && current.trim().toLocaleLowerCase() === normalized);
+   }
+
+   hasDuplicateWords(words: string[]): boolean {
+     const normalized = words.map((word) => word.trim().toLocaleLowerCase());
+     return new Set(normalized).size !== normalized.length;
+   }
+
+   async saveEditingCategory(): Promise<void> {
+     const words = this.editWords.map((word) => word.trim()).filter((word) => word.length >= 2 && word.length <= 40);
+     if (!this.editLabel.trim() || !words.length || this.hasDuplicateWords(words)) return;
+     if (this.editingCategory() === "__new__") {
       const key = this.editLabel.trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30);
       if (!key) return;
       const ok = await this.admin.createCategory(key, this.editLabel.trim(), words);

@@ -116,9 +116,7 @@ app.post('/api/admin/categories', adminAuth, (req, res) => {
   if (adminConfig.customCategories[cleanKey]) return res.status(400).json({ error: 'Esa categoría personalizada ya existe' });
   const cleanLabel = typeof label === 'string' ? label.trim().slice(0, 30) : '';
   if (!cleanLabel) return res.status(400).json({ error: 'El nombre es obligatorio' });
-  const cleanWords = Array.isArray(words)
-    ? [...new Set(words.map((w) => String(w).trim()).filter((w) => w.length >= 2 && w.length <= 40))].slice(0, 200)
-    : [];
+   const cleanWords = Array.isArray(words) ? cleanCategoryWords(words) : [];
   if (!cleanWords.length) return res.status(400).json({ error: 'Añade al menos una palabra' });
   adminConfig.customCategories[cleanKey] = { label: cleanLabel, words: cleanWords };
   saveAdminConfig(adminConfig);
@@ -198,9 +196,19 @@ const sanitizeCategoryKey = (raw) => {
 const isPlayingPlayer = (room, playerId) =>
   !room.eliminatedIds.has(playerId) &&
   (room.config.hostPlays !== false || playerId !== room.hostId);
-const cleanCategoryWords = (words) => [...new Set(
-  words.map((w) => String(w).trim()).filter((w) => w.length >= 2 && w.length <= 40)
-)].slice(0, 200);
+const cleanCategoryWords = (words) => {
+  const seen = new Set();
+  return words
+    .map((w) => String(w).trim())
+    .filter((w) => w.length >= 2 && w.length <= 40)
+    .filter((w) => {
+      const normalized = w.toLocaleLowerCase();
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    })
+    .slice(0, 200);
+};
 function getAllCategories() {
   const builtIn = {};
   for (const [key, cat] of Object.entries(CATEGORIES)) {
@@ -221,12 +229,12 @@ function getAdminCategories() {
     const override = adminConfig.categoryOverrides?.[key];
     categories[key] = {
       label: override?.label || cat.label,
-      words: [...(override?.words || cat.words)],
+       words: cleanCategoryWords(override?.words || cat.words),
       custom: false,
     };
   }
   for (const [key, cat] of Object.entries(adminConfig.customCategories || {})) {
-    categories[key] = { label: cat.label, words: [...cat.words], custom: true };
+     categories[key] = { label: cat.label, words: cleanCategoryWords(cat.words), custom: true };
   }
   return categories;
 }

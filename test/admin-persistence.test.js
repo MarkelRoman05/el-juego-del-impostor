@@ -50,7 +50,7 @@ async function request(pathname, options) {
     await request('/api/admin/categories', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ key: 'persistente', label: 'Persistente', words: ['reinicio'] }),
+       body: JSON.stringify({ key: 'persistente', label: 'Persistente', words: ['reinicio', ' Reinicio ', 'REINICIO'] }),
     });
     server.kill('SIGTERM');
     await new Promise((resolve) => server.once('exit', resolve));
@@ -65,7 +65,7 @@ async function request(pathname, options) {
     const categories = await request('/api/admin/categories', {
       headers: { Authorization: `Bearer ${loginAfterRestart.token}` },
     });
-    assert.deepEqual(categories.categories.persistente.words, ['reinicio']);
+     assert.deepEqual(categories.categories.persistente.words, ['reinicio']);
     console.log('Admin login y categorías persisten tras reinicio');
   } finally {
     server.kill('SIGTERM');
