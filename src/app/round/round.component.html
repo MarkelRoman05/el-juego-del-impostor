@@ -36,7 +36,7 @@
         <div class="secret-content">@if (game.role()?.role === 'impostor') {<div class="impostor-emoji"><impostor-icon
                     name="detective" /></div>
             <div class="impostor-title">¡ERES EL IMPOSTOR!</div>
-            @if (isHintEnabled() && game.role()?.category) {<div class="impostor-sub">Finge que la sabes. Tu pista:
+            @if (game.role()?.category) {<div class="impostor-sub">Finge que la sabes. Tu pista:
             </div>
             <div class="category-chip big">{{ game.role()?.category }}</div>} @else {<div class="impostor-sub">Finge que
                 la sabes. No tienes pista.</div>}} @else {<div class="word">{{

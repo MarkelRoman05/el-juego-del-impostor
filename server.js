@@ -352,6 +352,7 @@ function createRoom(hostId, hostName) {
   const room = {
     code,
     hostId,
+    originalHostId: hostId,
     phase: 'lobby',           // lobby | round | voting | result | gameover
     round: 0,
     players: new Map(),       // id -> { id, name, connected, reconnectToken }
@@ -634,6 +635,7 @@ io.on('connection', (socket) => {
 
   function remapIds(room, oldId, newId) {
     if (room.hostId === oldId) room.hostId = newId;
+    if (room.originalHostId === oldId) room.originalHostId = newId;
     if (room.impostorIds && room.impostorIds.has(oldId)) {
       room.impostorIds.delete(oldId);
       room.impostorIds.add(newId);
@@ -787,6 +789,7 @@ io.on('connection', (socket) => {
       room.players.delete(playerId);
       room.players.set(socket.id, p);
       remapIds(room, playerId, socket.id);
+      if (room.originalHostId === socket.id) room.hostId = socket.id;
       mergeWords();
       socket.data.roomCode = room.code;
       socket.data.playerId = socket.id;

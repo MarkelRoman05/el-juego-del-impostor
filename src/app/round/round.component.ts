@@ -21,9 +21,6 @@ export class RoundComponent {
   isHost(): boolean {
     return this.game.me() === this.game.room()?.hostId;
   }
-  isHintEnabled(): boolean {
-    return this.game.room()?.config.impostorHint === true;
-  }
   isPlayingPlayer(playerId: string): boolean {
     const room = this.game.room();
     return !(playerId === room?.hostId && room.config.hostPlays === false);
