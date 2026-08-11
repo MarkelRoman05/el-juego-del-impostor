@@ -25,8 +25,11 @@ export class GameService {
   private rejoinInProgress = false;
   private rejoinTimeout: ReturnType<typeof setTimeout> | undefined;
   private rejoinRetry: ReturnType<typeof setTimeout> | undefined;
+  private rejoinRequestId = 0;
   private everConnected = false;
   private restoringSession = false;
+  private intentionalDisconnect = false;
+  private lastWakeRecovery = 0;
 
   constructor() {
     const session = this.loadSession();
@@ -35,18 +38,19 @@ export class GameService {
     this.socket = io();
     this.socket.on("connect", () => {
       this.connected.set(true);
-      clearTimeout(this.rejoinTimeout);
-      clearTimeout(this.rejoinRetry);
-      this.rejoinInProgress = false;
+      this.cancelRejoin();
       this.reconnecting.set(Boolean(this.loadSession().code));
       this.everConnected = true;
       this.rejoinOnce();
     });
     this.socket.on("disconnect", () => {
-      clearTimeout(this.rejoinTimeout);
-      this.rejoinInProgress = false;
+      this.cancelRejoin();
       if (this.everConnected) this.reconnecting.set(true);
       this.connected.set(false);
+      if (this.intentionalDisconnect) {
+        this.intentionalDisconnect = false;
+        this.reconnecting.set(false);
+      }
     });
     this.socket.on("connect_error", () => {
       if (this.everConnected) this.reconnecting.set(true);
@@ -55,6 +59,7 @@ export class GameService {
     this.socket.on(
       "room:joined",
       ({ room, me, reconnectToken }: { room: Room; me: string; reconnectToken: string }) => {
+        this.cancelRejoin();
         this.restoringSession = false;
         this.reconnecting.set(false);
         this.room.set(room);
@@ -125,9 +130,11 @@ export class GameService {
       this.notify("Te han expulsado de la partida");
     });
     this.socket.on("session:replaced", () => {
+      this.cancelRejoin();
       this.clearSession();
       this.reset();
       this.reconnecting.set(false);
+      this.intentionalDisconnect = true;
       this.socket.disconnect();
       this.notify("Esta sesión fue reemplazada desde otra pestaña");
     });
@@ -135,10 +142,14 @@ export class GameService {
       this.votedFor.set(targetId);
     });
     this.socket.on("game:ended", () => {
+      this.cancelRejoin();
       this.clearSession();
       this.reset();
       this.notify("La partida ha terminado");
     });
+    window.addEventListener("online", this.recoverConnection);
+    window.addEventListener("pageshow", this.recoverConnection);
+    document.addEventListener("visibilitychange", this.recoverOnVisibility);
   }
 
   create(name: string): void {
@@ -275,7 +286,9 @@ export class GameService {
     const session = this.loadSession();
     if (!session.code || !session.playerId || !session.reconnectToken || !session.name) return;
     this.rejoinInProgress = true;
+    const requestId = ++this.rejoinRequestId;
     this.rejoinTimeout = setTimeout(() => {
+      if (requestId !== this.rejoinRequestId) return;
       this.rejoinInProgress = false;
       if (this.connected()) this.scheduleRejoin(attempt + 1);
     }, 10000);
@@ -288,6 +301,7 @@ export class GameService {
         reconnectToken: session.reconnectToken,
       },
       (res: Ack) => {
+        if (requestId !== this.rejoinRequestId) return;
         clearTimeout(this.rejoinTimeout);
         this.rejoinInProgress = false;
         if (!res) {
@@ -299,6 +313,7 @@ export class GameService {
           return;
         }
         if (res.error) {
+          this.cancelRejoin();
           this.restoringSession = false;
           this.reconnecting.set(false);
           if (!/otra pestaña/.test(res.error)) {
@@ -309,6 +324,29 @@ export class GameService {
       },
     );
   }
+  private cancelRejoin(): void {
+    clearTimeout(this.rejoinTimeout);
+    clearTimeout(this.rejoinRetry);
+    this.rejoinTimeout = undefined;
+    this.rejoinRetry = undefined;
+    this.rejoinInProgress = false;
+    this.rejoinRequestId += 1;
+  }
+  private recoverConnection = (): void => {
+    const session = this.loadSession();
+    if (!session.code || !session.playerId || !session.reconnectToken || !session.name) return;
+    const now = Date.now();
+    if (now - this.lastWakeRecovery < 3000) return;
+    this.lastWakeRecovery = now;
+    if (this.socket.connected) {
+      this.rejoinOnce();
+    } else {
+      this.socket.connect();
+    }
+  };
+  private recoverOnVisibility = (): void => {
+    if (document.visibilityState === "visible") this.recoverConnection();
+  };
   private scheduleRejoin(attempt: number): void {
     clearTimeout(this.rejoinRetry);
     this.rejoinRetry = setTimeout(
