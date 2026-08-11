@@ -7,16 +7,28 @@
     </div>
     @if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar a votación</button>}
     } @else if (game.isObserver()) {
-    <div class="empty-state eliminated-state">
+    <div class="empty-state eliminated-state observer-panel">
         <div class="big-emoji"><impostor-icon name="theater" /></div>
         <h2>GESTIONANDO PARTIDA</h2>
-        <p class="subtitle">No estás jugando. Puedes observar y gestionar las rondas.</p>
+        <p class="subtitle observer-intro">No estás jugando. Puedes observar y gestionar las rondas.</p>
+        <div class="observer-secret">
+            <span class="observer-label">PALABRA</span>
+            <div class="word">{{ game.role()?.word }}</div>
+            <div class="category-chip">Categoría: {{ game.role()?.category }}</div>
+        </div>
+        <div class="observer-impostor">
+            <span class="observer-label">IMPOSTOR</span>
+            <strong>{{ game.role()?.impostors?.join(', ') }}</strong>
+        </div>
     </div>
     @if (isHost()) {<button class="btn secondary" (click)="game.revealNow()"><impostor-icon name="ballot" /> Pasar a votación</button>}
     } @else {
     <div class="round-top"><span class="chip">Ronda {{ game.role()?.round }}</span></div>
-    <div class="hold-card" [class.revealed]="revealed()" (pointerdown)="holdStart($event)" (pointerleave)="holdEnd()"
-        (contextmenu)="$event.preventDefault()">
+    <div class="hold-card" role="button" tabindex="0"
+        [attr.aria-label]="revealed() ? 'Palabra secreta visible' : 'Mantén pulsado para ver la palabra'"
+        [class.revealed]="revealed()" (pointerdown)="holdStart($event)" (pointerleave)="holdEnd()"
+        (pointercancel)="holdEnd()" (keydown.space)="holdStart($event)" (keyup.space)="holdEnd()"
+        (keydown.enter)="revealed.set(!revealed())" (contextmenu)="$event.preventDefault()">
         <div class="hold-idle">
             <div class="lock"><impostor-icon name="lock" /></div>
             <div class="hold-text">Mantén pulsado<br>para ver la palabra</div>
@@ -36,10 +48,9 @@
         a votación</button>
     <p class="hint">¿Alguien ha dicho la palabra correcta?</p>
     <div class="vote-list mark-list">@for (player of game.room()?.players; track player.id) {
-        @if (player.connected && !player.eliminated) {
+        @if (player.connected && !player.eliminated && isPlayingPlayer(player.id)) {
         <button class="vote-btn" (click)="markImpostor(player.id)">Marcar a {{ player.name }} como impostor</button>
         }
     }</div>}
-    <button class="round-exit" (click)="leaveRound()">Salir de la partida</button>
     }
 </section>

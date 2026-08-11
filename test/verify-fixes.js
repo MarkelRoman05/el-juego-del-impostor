@@ -21,13 +21,16 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
 (async () => {
   const host = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(host, 'connect');
+  const joinedP = onEvent(host, 'room:joined');
   check('room:create ok', (await emitAckP(host, 'room:create', { name: 'Host' })).ok === true);
-  const joined = await onEvent(host, 'room:joined');
+  const joined = await joinedP;
   const code = joined.room.code;
 
   const p1 = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(p1, 'connect');
+  const p1JoinedP = onEvent(p1, 'room:joined');
   check('join P1 ok', (await emitAckP(p1, 'room:join', { code, name: 'P1', playerId: null })).ok === true);
+  const p1Joined = await p1JoinedP;
 
   const p2 = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(p2, 'connect');
@@ -65,7 +68,7 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
   const p1b = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(p1b, 'connect');
   const restoredRole = onEvent(p1b, 'round:started');
-  const re = await emitAckP(p1b, 'room:join', { code, name: 'P1', playerId: p1OldId });
+  const re = await emitAckP(p1b, 'room:join', { code, name: 'P1', playerId: p1OldId, reconnectToken: p1Joined.reconnectToken });
   check('reconexión a mitad de ronda permitida', re.ok === true, JSON.stringify(re));
   const role = await restoredRole;
   check('rol restaurado tras reconexión', role.round === 1 && ['player', 'impostor'].includes(role.role));
@@ -77,7 +80,7 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
   const p1c = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(p1c, 'connect');
   const restoredAgain = onEvent(p1c, 'round:started');
-  const re2 = await emitAckP(p1c, 'room:join', { code, name: 'P1', playerId: p1NewId });
+  const re2 = await emitAckP(p1c, 'room:join', { code, name: 'P1', playerId: p1NewId, reconnectToken: p1Joined.reconnectToken });
   check('segunda reconexión a mitad de ronda permitida', re2.ok === true, JSON.stringify(re2));
   await restoredAgain;
   p1c.close();

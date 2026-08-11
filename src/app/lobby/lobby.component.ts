@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RoomConfig, Player } from "../game.models";
@@ -15,6 +15,9 @@ import { IconComponent } from "../icon/icon.component";
 export class LobbyComponent implements OnInit {
   readonly game = inject(GameService);
   readonly categories = signal<Array<[string, string]>>([]);
+  readonly selectedWord = signal("");
+  readonly manualWord = signal("");
+  readonly exactWord = computed(() => this.selectedWord() || this.manualWord());
 
   async ngOnInit(): Promise<void> {
     try {
@@ -42,8 +45,27 @@ export class LobbyComponent implements OnInit {
   hasSelectedCategory(): boolean {
     return this.selectedCategories().length > 0;
   }
+  canStart(): boolean {
+    return this.hasSelectedCategory() || this.exactWord().trim().length > 0;
+  }
   setConfig(key: keyof RoomConfig, value: string | number | boolean): void {
     this.game.configure({ [key]: value });
+    if (key === "hostPlays" && value === true) {
+      this.selectedWord.set("");
+      this.manualWord.set("");
+      this.game.configure({ customWords: "", hostWordFromCatalog: false });
+    }
+  }
+  setSelectedWord(word: string): void {
+    this.selectedWord.set(word);
+    this.manualWord.set("");
+    this.game.configure({ customWords: word, hostWordFromCatalog: Boolean(word) });
+  }
+  setManualWord(value: string): void {
+    const word = value.slice(0, 40);
+    this.selectedWord.set("");
+    this.manualWord.set(word);
+    this.game.configure({ customWords: word, hostWordFromCatalog: false });
   }
   selectedCategories(): string[] {
     const value = this.game.room()?.config.category ?? "";

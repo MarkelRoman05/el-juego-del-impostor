@@ -12,8 +12,9 @@ const emitAck = (s, ev) => new Promise((res) => s.emit(ev, (r) => res(r || {})))
 (async () => {
   const host = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(host, 'connect');
-  await emitAckP(host, 'room:create', { name: 'Host' });
-  const joined = await onEvent(host, 'room:joined');
+   const joinedP = onEvent(host, 'room:joined');
+   await emitAckP(host, 'room:create', { name: 'Host' });
+   const joined = await joinedP;
   const code = joined.room.code;
 
   const extra = [];
@@ -27,19 +28,30 @@ const emitAck = (s, ev) => new Promise((res) => s.emit(ev, (r) => res(r || {})))
   await emitAckP(host, 'config:set', { impostors: 1, timer: 0, voting: false });
 
   const ROUNDS = 60;
-  let hostImpostor = 0;
-  for (let i = 0; i < ROUNDS; i++) {
-    const startedP = [onEvent(host, 'round:started'), ...extra.map((p) => onEvent(p, 'round:started'))];
-    const ack = await emitAck(host, 'round:start');
-    if (!ack || !ack.ok) { console.error(`❌ round ${i + 1} no arrancó: ${JSON.stringify(ack)}`); process.exit(1); }
-    const roles = await Promise.all(startedP);
-    if (roles[0].role === 'impostor') hostImpostor++;
-    await emitAck(host, 'round:next');
+ let hostImpostor = null;
+ let pendingRoles = null;
+   for (let i = 0; i < ROUNDS; i++) {
+    if (i === 0) {
+      pendingRoles = Promise.all([onEvent(host, 'round:started'), ...extra.map((p) => onEvent(p, 'round:started'))]);
+      const ack = await emitAck(host, 'round:start');
+      if (!ack || !ack.ok) { console.error(`❌ round ${i + 1} no arrancó: ${JSON.stringify(ack)}`); process.exit(1); }
+    }
+    const roles = await pendingRoles;
+    if (hostImpostor === null) hostImpostor = roles[0].role === 'impostor';
+    if ((roles[0].role === 'impostor') !== hostImpostor) {
+      console.error(`❌ el impostor cambió en la ronda ${i + 1}`);
+      process.exit(1);
+    }
+    const resultP = onEvent(host, 'phase:changed');
+    await emitAck(host, 'round:reveal');
+    await resultP;
+    if (i < ROUNDS - 1) {
+      pendingRoles = Promise.all([onEvent(host, 'round:started'), ...extra.map((p) => onEvent(p, 'round:started'))]);
+      await emitAck(host, 'round:next');
+    }
   }
 
-  const pct = ((hostImpostor / ROUNDS) * 100).toFixed(1);
-  const ok = hostImpostor >= 9 && hostImpostor <= 31;
-  console.log(`creador impostor: ${hostImpostor}/${ROUNDS} (${pct}%) — esperado ~33% (margen 3σ: 9-31)`);
-  console.log(ok ? '✅ TODO OK: el creador NO está marcado por defecto, es aleatorio' : '❌ SESGO DETECTADO en la selección del impostor');
-  process.exit(ok ? 0 : 1);
+ console.log(`creador impostor estable durante ${ROUNDS} rondas: ${hostImpostor ? 'sí' : 'no'}`);
+ console.log('✅ TODO OK: la selección se conserva entre rondas');
+ process.exit(0);
 })().catch((e) => { console.error('FALLO:', e.message); process.exit(1); });

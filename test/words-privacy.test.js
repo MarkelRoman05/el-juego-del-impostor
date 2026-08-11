@@ -21,8 +21,9 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
 (async () => {
   const host = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(host, 'connect');
+  const joinedP = onEvent(host, 'room:joined');
   check('create con palabras ok', (await emitAckP(host, 'room:create', { name: 'Host', customWords: 'volcán\ncascada' })).ok === true);
-  const joined = await onEvent(host, 'room:joined');
+  const joined = await joinedP;
   const code = joined.room.code;
   check('pool inicial = 2 palabras', joined.room.config.customWordsCount === 2, `count=${joined.room.config.customWordsCount}`);
   check('PRIVACIDAD: room:joined sin el texto de las palabras', !JSON.stringify(joined.room).includes('volcán') && !JSON.stringify(joined.room).includes('cascada'), '');

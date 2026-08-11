@@ -37,6 +37,7 @@ export interface RolePayload {
   category: string;
   round: number;
   timer: number;
+  impostors?: string[];
 }
 export interface VoteResult {
   id: string;
@@ -47,6 +48,10 @@ export interface Ballot {
   from: string;
   to: string;
 }
+export interface LiveVote {
+  from: string;
+  to: string;
+}
 export interface RevealData {
   eliminated: { id: string; name: string } | null;
   tied: boolean;
@@ -54,6 +59,7 @@ export interface RevealData {
   ballots: Ballot[];
   round: number;
   gameOver: boolean;
+  word?: string;
   reason?: string;
   impostors?: Array<{ id: string; name: string }>;
 }

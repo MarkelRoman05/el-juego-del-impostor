@@ -44,4 +44,14 @@ export class AppComponent implements OnInit {
   private checkRoute(url: string): void {
     this.isAdmin.set(url.startsWith("/admin") || url.startsWith("#/admin"));
   }
+
+  leaveGame(): void {
+    const isHost = this.game.me() === this.game.room()?.hostId;
+    const message = isHost
+      ? "¿Finalizar la partida para todos?"
+      : "¿Salir de la partida?";
+    if (!window.confirm(message)) return;
+    if (isHost) this.game.endGame();
+    else this.game.leaveRound();
+  }
 }

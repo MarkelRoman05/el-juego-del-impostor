@@ -3,6 +3,9 @@ services:
     build: .
     ports:
       - "3111:3111"
+    environment:
+      ADMIN_USER: "${ADMIN_USER:-}"
+      ADMIN_PASS: "${ADMIN_PASS:-}"
     volumes:
       - impostor-data:/app/data
     restart: unless-stopped

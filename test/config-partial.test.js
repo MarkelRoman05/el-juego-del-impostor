@@ -18,8 +18,9 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
 (async () => {
   const host = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
   await onEvent(host, 'connect');
+  const joinedP = onEvent(host, 'room:joined');
   check('room:create ok', (await emitAckP(host, 'room:create', { name: 'Host' })).ok === true);
-  const joined = await onEvent(host, 'room:joined');
+  const joined = await joinedP;
   const code = joined.room.code;
 
   // 2 jugadores más (total 3 conectados → máx impostores = 2)

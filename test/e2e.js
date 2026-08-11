@@ -20,6 +20,17 @@ const onEvent = (socket, event, timeout = 5000) =>
     const t = setTimeout(() => reject(new Error(`timeout esperando '${event}'`)), timeout);
     socket.once(event, (data) => { clearTimeout(t); resolve(data); });
   });
+const onEventMatching = (socket, event, predicate, timeout = 5000) =>
+  new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`timeout esperando '${event}'`)), timeout);
+    const handler = (data) => {
+      if (!predicate(data)) return;
+      clearTimeout(t);
+      socket.off(event, handler);
+      resolve(data);
+    };
+    socket.on(event, handler);
+  });
 
 function client(name) {
   const s = io(URL, { transports: ['websocket'], reconnection: false, forceNew: true });
@@ -68,22 +79,27 @@ async function main() {
   await onEvent(p2, 'connect');
 
   /* 1. crear sala */
+  const joinedP = onEvent(host, 'room:joined');
   let res = await emitAckP(host, 'room:create', { name: 'Anfitrión' });
   check('room:create ok', res.ok === true, JSON.stringify(res));
-  const joined = await onEvent(host, 'room:joined');
+  const joined = await joinedP;
   const code = joined.room.code;
   check('código de 4 caracteres', /^[A-Z0-9]{4}$/.test(code), code);
   const hostId = joined.room.players.find((p) => p.name === 'Anfitrión').id;
 
   /* 2. unirse (esperamos lobby:update tras cada join) */
+  const p1JoinedP = onEvent(p1, 'room:joined');
+  const lu1P = onEventMatching(host, 'lobby:update', (data) => data.players?.length === 2);
   res = await emitAckP(p1, 'room:join', { code, name: 'Jugador 1', playerId: null });
   check('join p1 ok', res.ok === true, JSON.stringify(res));
-  const lu1 = await onEvent(host, 'lobby:update');
+  const p1Joined = await p1JoinedP;
+  const lu1 = await lu1P;
   check('lobby 2 jugadores', lu1.players.length === 2);
 
+  const lu2P = onEventMatching(host, 'lobby:update', (data) => data.players?.length === 3);
   res = await emitAckP(p2, 'room:join', { code, name: 'Jugador 2', playerId: null });
   check('join p2 ok', res.ok === true, JSON.stringify(res));
-  const lu2 = await onEvent(host, 'lobby:update');
+  const lu2 = await lu2P;
   check('lobby 3 jugadores', lu2.players.length === 3);
   const p1Id = lu2.players.find((p) => p.name === 'Jugador 1').id;
   const p2Id = lu2.players.find((p) => p.name === 'Jugador 2').id;
@@ -127,7 +143,7 @@ async function main() {
   check('voto: p1 → p2', (await emitAckP(p1, 'vote:cast', { targetId: p2Id })).ok === true);
 
   /* 7. último voto → reveal automático (waiter ANTES) */
-  const revealP = onEvent(host, 'round:reveal');
+  const revealP = onEvent(host, 'game:over');
   res = await emitAckP(p2, 'vote:cast', { targetId: p1Id });
   check('voto: p2 → p1', res.ok === true);
   const reveal = await revealP;
@@ -149,14 +165,14 @@ async function main() {
   await wait(400); // el servidor marca a p1 como desconectado
   const p1b = client('p1-re');
   await onEvent(p1b, 'connect');
-  res = await emitAckP(p1b, 'room:join', { code, name: 'Jugador 1', playerId: p1OldId });
+  res = await emitAckP(p1b, 'room:join', { code, name: 'Jugador 1', playerId: p1OldId, reconnectToken: p1Joined.reconnectToken });
   check('reconexión ok', res.ok === true, JSON.stringify(res));
   const reJoined = await onEvent(p1b, 'room:joined');
   check('playerId actualizado en reconexión', reJoined.me === p1b.id);
   check('sin duplicados tras reconexión', reJoined.room.players.filter((p) => p.name === 'Jugador 1').length === 1);
 
   /* 10. host abandona → se transfiere el mando a un jugador conectado (waiter ANTES del close) */
-  const lobbyAfterP = onEvent(p1b, 'lobby:update');
+  const lobbyAfterP = onEventMatching(p1b, 'lobby:update', (data) => data.hostId !== hostId);
   host.close();
   const lobbyAfter = await lobbyAfterP;
   check(

@@ -24,17 +24,16 @@ export class RoundComponent {
   isHintEnabled(): boolean {
     return this.game.room()?.config.impostorHint === true;
   }
+  isPlayingPlayer(playerId: string): boolean {
+    const room = this.game.room();
+    return !(playerId === room?.hostId && room.config.hostPlays === false);
+  }
   holdStart(event: Event): void {
     event.preventDefault();
     this.revealed.set(true);
   }
   holdEnd(): void {
     this.revealed.set(false);
-  }
-  leaveRound(): void {
-    if (window.confirm("¿Salir de la partida? Esta acción no se puede deshacer.")) {
-      this.game.leaveRound();
-    }
   }
   markImpostor(playerId: string): void {
     if (window.confirm("¿Confirmar que ha dicho la palabra correcta?")) {

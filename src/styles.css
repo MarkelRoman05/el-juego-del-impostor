@@ -27,7 +27,7 @@ body {
     var(--bg);
   color: var(--ink);
   font-family: "Space Grotesk", system-ui, sans-serif;
-  user-select: none;
+  user-select: text;
 }
 button,
 input,
@@ -522,7 +522,12 @@ textarea::placeholder {
   position: relative;
 }
 .switch input {
-  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 .switch i {
   position: absolute;
@@ -776,6 +781,98 @@ textarea::placeholder {
 }
 .empty-state {
   text-align: center;
+}
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 3px;
+}
+.persistent-exit {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 10;
+  padding: 9px 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 12px;
+  cursor: pointer;
+}
+.persistent-exit:hover {
+  color: var(--ink);
+  border-color: var(--pink);
+}
+.exact-word-config {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid #ffc66d55;
+  border-radius: 12px;
+  background: #ffc66d0d;
+}
+.exact-word-config label {
+  color: var(--yellow);
+}
+.exact-word-config small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.observer-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 0 8px 24px;
+}
+.observer-panel .big-emoji {
+  margin-bottom: -3px;
+}
+.observer-intro {
+  max-width: 290px;
+}
+.observer-secret,
+.observer-impostor {
+  width: min(100%, 330px);
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #11131b;
+  box-sizing: border-box;
+}
+.observer-secret {
+  box-shadow: 0 14px 35px #0003;
+}
+.observer-secret .word {
+  margin-top: 7px;
+}
+.observer-secret .category-chip {
+  margin-top: 10px;
+}
+.observer-impostor {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border-color: #ff6b9666;
+  background: #2a1526;
+}
+.observer-impostor strong {
+  color: var(--pink);
+  font-size: 20px;
+}
+.observer-label {
+  color: var(--muted);
+  font: 11px "DM Mono", monospace;
+  letter-spacing: 1.5px;
+}
+.observer-panel .live-votes {
+  width: min(100%, 330px);
+  margin-top: 2px;
 }
 .big-emoji {
   font-size: 54px;

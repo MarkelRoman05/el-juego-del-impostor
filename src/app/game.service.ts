@@ -1,6 +1,6 @@
 import { Injectable, signal } from "@angular/core";
 import { io, Socket } from "socket.io-client";
-import { Ack, Phase, RevealData, RolePayload, Room } from "./game.models";
+import { Ack, LiveVote, Phase, RevealData, RolePayload, Room } from "./game.models";
 
 const SESSION_KEY = "impostor_session";
 
@@ -13,6 +13,8 @@ export class GameService {
   readonly reveal = signal<RevealData | null>(null);
   readonly votedFor = signal<string | null>(null);
   readonly votingDeadline = signal(0);
+  readonly liveVotes = signal<LiveVote[]>([]);
+  readonly wordOptions = signal<string[]>([]);
   readonly roundStartedAt = signal(0);
   readonly connected = signal(false);
   readonly reconnecting = signal(false);
@@ -28,7 +30,7 @@ export class GameService {
 
   constructor() {
     const session = this.loadSession();
-    this.restoringSession = Boolean(session.code && session.playerId && session.name);
+    this.restoringSession = Boolean(session.code && session.playerId && session.reconnectToken && session.name);
     this.reconnecting.set(this.restoringSession);
     this.socket = io();
     this.socket.on("connect", () => {
@@ -52,13 +54,17 @@ export class GameService {
     });
     this.socket.on(
       "room:joined",
-      ({ room, me }: { room: Room; me: string }) => {
+      ({ room, me, reconnectToken }: { room: Room; me: string; reconnectToken: string }) => {
         this.restoringSession = false;
         this.reconnecting.set(false);
         this.room.set(room);
         this.me.set(me);
+        this.reveal.set(null);
+        this.votedFor.set(null);
+        this.liveVotes.set([]);
+        this.wordOptions.set([]);
         this.phase.set(this.phaseFor(room.phase));
-        this.saveSession({ name: this.name(), code: room.code, playerId: me });
+        this.saveSession({ name: this.name(), code: room.code, playerId: me, reconnectToken });
         history.replaceState(null, "", `/?c=${room.code}`);
       },
     );
@@ -79,12 +85,23 @@ export class GameService {
         deadlineAt?: number;
       }) => {
         if (phase === "round" && startedAt) this.roundStartedAt.set(startedAt);
+        if (phase === "round") {
+          this.reveal.set(null);
+          this.liveVotes.set([]);
+        }
         if (phase === "voting") {
+          this.reveal.set(null);
           this.votedFor.set(null);
+          this.liveVotes.set([]);
           this.votingDeadline.set(deadlineAt ?? Date.now() + 60000);
         }
         this.phase.set(this.phaseFor(phase));
-        if (phase === "lobby") this.role.set(null);
+        if (phase === "lobby") {
+          this.role.set(null);
+          this.reveal.set(null);
+          this.liveVotes.set([]);
+          this.wordOptions.set([]);
+        }
       },
     );
     this.socket.on("round:started", (role: RolePayload) => {
@@ -92,6 +109,8 @@ export class GameService {
       this.roundStartedAt.set(Date.now());
       this.phase.set("round");
     });
+    this.socket.on("vote:update", (votes: LiveVote[]) => this.liveVotes.set(votes));
+    this.socket.on("word:options", (words: string[]) => this.wordOptions.set(words));
     this.socket.on("round:result", (data: RevealData) => {
       this.reveal.set(data);
       this.phase.set("result");
@@ -105,7 +124,16 @@ export class GameService {
       this.reset();
       this.notify("Te han expulsado de la partida");
     });
-    this.socket.on("session:replaced", () => this.socket.disconnect());
+    this.socket.on("session:replaced", () => {
+      this.clearSession();
+      this.reset();
+      this.reconnecting.set(false);
+      this.socket.disconnect();
+      this.notify("Esta sesión fue reemplazada desde otra pestaña");
+    });
+    this.socket.on("vote:state", ({ targetId }: { targetId: string | null }) => {
+      this.votedFor.set(targetId);
+    });
     this.socket.on("game:ended", () => {
       this.clearSession();
       this.reset();
@@ -129,7 +157,7 @@ export class GameService {
     this.saveSession({ name });
     this.socket.emit(
       "room:join",
-      { code, name, playerId: session.playerId ?? null },
+      { code, name, playerId: null },
       (res: Ack) => {
         if (res?.error) this.notify(res.error);
       },
@@ -152,6 +180,11 @@ export class GameService {
   }
   leaveRound(): void {
     this.socket.emit("round:leave", (res: Ack) => {
+      if (res?.error) this.notify(res.error);
+    });
+  }
+  endGame(): void {
+    this.socket.emit("game:end", (res: Ack) => {
       if (res?.error) this.notify(res.error);
     });
   }
@@ -240,7 +273,7 @@ export class GameService {
   private rejoinOnce(attempt = 0): void {
     if (this.rejoinInProgress || !this.connected()) return;
     const session = this.loadSession();
-    if (!session.code || !session.playerId || !session.name) return;
+    if (!session.code || !session.playerId || !session.reconnectToken || !session.name) return;
     this.rejoinInProgress = true;
     this.rejoinTimeout = setTimeout(() => {
       this.rejoinInProgress = false;
@@ -252,6 +285,7 @@ export class GameService {
         code: session.code,
         name: session.name,
         playerId: session.playerId,
+        reconnectToken: session.reconnectToken,
       },
       (res: Ack) => {
         clearTimeout(this.rejoinTimeout);
@@ -282,12 +316,13 @@ export class GameService {
       Math.min(3000, 400 + attempt * 300),
     );
   }
-  private loadSession(): { name?: string; code?: string; playerId?: string } {
+  private loadSession(): { name?: string; code?: string; playerId?: string; reconnectToken?: string } {
     try {
       return JSON.parse(localStorage.getItem(SESSION_KEY) ?? "{}") as {
         name?: string;
         code?: string;
         playerId?: string;
+        reconnectToken?: string;
       };
     } catch {
       return {};
@@ -297,6 +332,7 @@ export class GameService {
     name: string;
     code?: string;
     playerId?: string;
+    reconnectToken?: string;
   }): void {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
@@ -310,5 +346,7 @@ export class GameService {
     this.role.set(null);
     this.reveal.set(null);
     this.votedFor.set(null);
+    this.liveVotes.set([]);
+    this.wordOptions.set([]);
   }
 }

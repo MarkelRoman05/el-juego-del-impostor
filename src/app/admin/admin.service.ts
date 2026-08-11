@@ -72,8 +72,9 @@ export class AdminService {
         this.logout();
         return;
       }
+      if (!res.ok) throw new Error("rooms");
       const data = await res.json();
-      this.rooms.set(data.rooms);
+      this.rooms.set(Array.isArray(data.rooms) ? data.rooms : []);
     } catch {
       this.error.set("Error al cargar salas");
     }

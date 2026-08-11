@@ -10,6 +10,11 @@
     @case ('gameover') { <impostor-reveal /> }
     @case ('waiting') { <impostor-waiting /> }
     }
+    @if (game.room() && game.phase() !== 'lobby') {
+      <button class="persistent-exit" (click)="leaveGame()">
+        {{ game.me() === game.room()?.hostId ? 'Finalizar partida' : 'Salir de la partida' }}
+      </button>
+    }
   </main>
   @if (game.toast()) { <div class="toast" role="status">{{ game.toast() }}</div> }
   @if (game.reconnecting()) { <div class="conn-overlay">

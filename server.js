@@ -17,11 +17,22 @@ const ROOM_MAX_AGE_MS = 2 * 60 * 60 * 1000;   // una sala vive 2h desde la últi
 const EMPTY_ROOM_TTL_MS = 10 * 60 * 1000;     // y se borra 10min después de quedarse vacía
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
-const ADMIN_USER = 'markel';
-const ADMIN_PASS = 'Markiton5_-?';
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const ADMIN_TOKEN_FILE = path.join(DATA_DIR, 'admin-tokens.json');
 const ADMIN_CONFIG_FILE = path.join(DATA_DIR, 'admin-config.json');
+const ADMIN_CREDENTIALS_FILE = path.join(DATA_DIR, 'admin-credentials.json');
+let fileCredentials = {};
+try {
+  fileCredentials = JSON.parse(fs.readFileSync(ADMIN_CREDENTIALS_FILE, 'utf8'));
+} catch {}
+const ADMIN_USER = process.env.ADMIN_USER || fileCredentials.username || '';
+const ADMIN_PASS = process.env.ADMIN_PASS || fileCredentials.password || '';
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 10;
+const JOIN_WINDOW_MS = 60 * 1000;
+const JOIN_MAX_ATTEMPTS = 30;
+const loginAttempts = new Map();
+const joinAttempts = new Map();
 
 const app = express();
 const server = http.createServer(app);
@@ -45,11 +56,21 @@ app.get('/api/categories', (_req, res) => {
 /* ------------------------------------------------------------------ */
 
 app.post('/api/admin/login', (req, res) => {
+  const now = Date.now();
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const attempts = (loginAttempts.get(ip) || []).filter((at) => now - at < LOGIN_WINDOW_MS);
+  if (attempts.length >= LOGIN_MAX_ATTEMPTS) {
+    loginAttempts.set(ip, attempts);
+    return res.status(429).json({ error: 'Demasiados intentos. Inténtalo más tarde' });
+  }
   const { username, password } = req.body;
   if (username === ADMIN_USER && password === ADMIN_PASS) {
+    loginAttempts.delete(ip);
     const token = generateAdminToken();
     return res.json({ token });
   }
+  attempts.push(now);
+  loginAttempts.set(ip, attempts);
   res.status(401).json({ error: 'Credenciales incorrectas' });
 });
 
@@ -117,7 +138,9 @@ app.put('/api/admin/categories/:key', adminAuth, (req, res) => {
     category.label = label.trim().slice(0, 30);
   }
   if (Array.isArray(words)) {
-    category.words = cleanCategoryWords(words);
+    const cleanWords = cleanCategoryWords(words);
+    if (!cleanWords.length) return res.status(400).json({ error: 'La categoría debe tener al menos una palabra' });
+    category.words = cleanWords;
   }
   saveAdminConfig(adminConfig);
   res.json({ ok: true, categories: getAdminCategories() });
@@ -172,6 +195,9 @@ const sanitizeCategoryKey = (raw) => {
   const key = raw.trim().toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30);
   return key.length >= 2 ? key : '';
 };
+const isPlayingPlayer = (room, playerId) =>
+  !room.eliminatedIds.has(playerId) &&
+  (room.config.hostPlays !== false || playerId !== room.hostId);
 const cleanCategoryWords = (words) => [...new Set(
   words.map((w) => String(w).trim()).filter((w) => w.length >= 2 && w.length <= 40)
 )].slice(0, 200);
@@ -292,7 +318,11 @@ function genCode() {
     for (let j = 0; j < 4; j++) code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
     if (!rooms.has(code)) return code;
   }
-  return String(Date.now()).slice(-4);
+  let code;
+  do {
+    code = String(crypto.randomInt(0, 10000)).padStart(4, '0');
+  } while (rooms.has(code));
+  return code;
 }
 
 /* ------------------------------------------------------------------ */
@@ -308,8 +338,8 @@ function createRoom(hostId, hostName) {
     hostId,
     phase: 'lobby',           // lobby | round | voting | result | gameover
     round: 0,
-    players: new Map(),       // id -> { id, name, connected }
-    config: { impostors: 1, category: 'animales', customWords: '', timer: 0, voting: true, impostorHint: false, hostPlays: true },
+    players: new Map(),       // id -> { id, name, connected, reconnectToken }
+    config: { impostors: 1, category: 'animales', customWords: '', timer: 0, voting: true, impostorHint: false, hostPlays: true, hostWordFromCatalog: false },
     word: null,
     categoryLabel: null,
     impostorIds: null,        // Set<id>
@@ -324,7 +354,7 @@ function createRoom(hostId, hostName) {
     advanceTimer: null,
     lastActivity: Date.now(),
   };
-  room.players.set(hostId, { id: hostId, name: hostName, connected: true });
+  room.players.set(hostId, { id: hostId, name: hostName, connected: true, reconnectToken: crypto.randomBytes(32).toString('hex') });
   rooms.set(code, room);
   scheduleRoomCleanup(room);
   return room;
@@ -364,14 +394,15 @@ function serializeRoom(room) {
 }
 
 function categoryKeys(value) {
-  const isEnabledBuiltIn = (key) => Boolean(CATEGORIES[key] && key !== 'mezcla' && !adminConfig.disabledCategories?.[key]);
+  const isEnabledBuiltIn = (key) => Boolean(Object.hasOwn(CATEGORIES, key) && key !== 'mezcla' && !adminConfig.disabledCategories?.[key]);
   if (value === 'mezcla') return [...Object.keys(CATEGORIES).filter(isEnabledBuiltIn), ...Object.keys(adminConfig.customCategories || {}), 'personalizadas'];
-  const keys = String(value || '').split(',').filter((key, index, list) => (isEnabledBuiltIn(key) || (adminConfig.customCategories || {})[key] || key === 'personalizadas') && key !== 'mezcla' && list.indexOf(key) === index);
+  const keys = String(value || '').split(',').filter((key, index, list) => (isEnabledBuiltIn(key) || Object.hasOwn(adminConfig.customCategories || {}, key) || key === 'personalizadas') && key !== 'mezcla' && list.indexOf(key) === index);
   return keys.length ? keys : ['animales'];
 }
 
 function getWordPool(room) {
   const custom = parseCustomWords(room.config.customWords);
+  if (custom.length) return custom;
   const customCats = adminConfig.customCategories || {};
   const pool = categoryKeys(room.config.category).flatMap((key) => {
     if (key === 'personalizadas') return custom;
@@ -381,6 +412,25 @@ function getWordPool(room) {
   });
   const allWords = [...new Set(pool)];
   return allWords.length ? allWords : CATEGORIES.animales.words;
+}
+function getCategoryWordOptions(room) {
+  const customCats = adminConfig.customCategories || {};
+  const pool = categoryKeys(room.config.category).flatMap((key) => {
+    if (key === 'personalizadas') return [];
+    if (customCats[key]) return customCats[key].words;
+    if (adminConfig.categoryOverrides?.[key]) return adminConfig.categoryOverrides[key].words;
+    return CATEGORIES[key] ? CATEGORIES[key].words : [];
+  });
+  return [...new Set(pool)];
+}
+function categoryLabelForWord(room, word) {
+  return categoryKeys(room.config.category).map((key) => {
+    if (key === 'personalizadas') return null;
+    const custom = adminConfig.customCategories?.[key];
+    const words = custom?.words || adminConfig.categoryOverrides?.[key]?.words || CATEGORIES[key]?.words || [];
+    if (!words.includes(word)) return null;
+    return custom?.label || adminConfig.categoryOverrides?.[key]?.label || CATEGORIES[key]?.label || key;
+  }).filter(Boolean).join(' + ');
 }
 
 function pickWord(room) {
@@ -423,12 +473,14 @@ function scheduleAdvance(room, ms, fn) {
 }
 
 function startRound(room) {
-  const connected = [...room.players.values()].filter((p) => p.connected && !room.eliminatedIds.has(p.id));
+  const connected = [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id));
   const impostors = clamp(room.config.impostors, 1, Math.min(MAX_IMPOSTORS, connected.length - 1));
-  const word = pickWord(room);
+  const word = room.word || pickWord(room);
   const customWords = parseCustomWords(room.config.customWords);
   const categoryLabel = customWords.length
-    ? 'Palabras personalizadas'
+    ? (room.config.hostPlays === false && room.config.hostWordFromCatalog
+      ? categoryLabelForWord(room, customWords[0]) || 'Palabra elegida por el host'
+      : room.config.hostPlays === false ? 'Palabra elegida por el host' : 'Palabras personalizadas')
     : room.config.category === 'mezcla'
       ? 'Mezcla'
       : categoryKeys(room.config.category).map((key) => {
@@ -459,12 +511,25 @@ function startRound(room) {
     const sock = io.sockets.sockets.get(p.id);
     if (sock) sock.emit('round:started', payload);
   }
+  const host = room.players.get(room.hostId);
+  if (host && host.connected && !isPlayingPlayer(room, host.id)) {
+    const payload = {
+      role: 'player',
+      word,
+      category: categoryLabel,
+      round: room.round,
+      timer: 0,
+      impostors: [...impostorIds].map((id) => room.players.get(id)?.name || '?'),
+    };
+    room.roleByPlayer.set(host.id, payload);
+    io.sockets.sockets.get(host.id)?.emit('round:started', payload);
+  }
 
   setPhase(room, 'round', { startedAt: room.startedAt });
 }
 
 function expectedVoters(room) {
-  return [...room.players.values()].filter((p) => p.connected && !room.eliminatedIds.has(p.id)).length;
+  return [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id)).length;
 }
 
 function checkVotes(room) {
@@ -494,7 +559,7 @@ function resolveVotes(room) {
   if (eliminatedId) room.eliminatedIds.add(eliminatedId);
   const gameOver = Boolean(eliminatedId && room.impostorIds?.has(eliminatedId)) ||
     [...room.players.values()].filter((player) => isPlayingPlayer(room, player.id) && !room.eliminatedIds.has(player.id)).length <= (room.impostorIds?.size ?? 1);
-  const result = { eliminated: eliminatedId ? { id: eliminatedId, name: playersById[eliminatedId]?.name ?? '?' } : null, tied: !eliminatedId, votes, ballots, round: room.round, gameOver };
+  const result = { eliminated: eliminatedId ? { id: eliminatedId, name: playersById[eliminatedId]?.name ?? '?' } : null, tied: !eliminatedId, votes, ballots, round: room.round, gameOver, word: room.word };
   room.revealData = result;
   if (gameOver) {
     result.impostors = [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' }));
@@ -573,6 +638,21 @@ io.on('connection', (socket) => {
     room.votes = newVotes;
   }
 
+  function getLiveVotes(room) {
+    return [...room.votes].map(([from, to]) => ({
+      from: room.players.get(from)?.name || '?',
+      to: room.players.get(to)?.name || '?',
+    }));
+  }
+
+  function sendWordOptions(room, sock) {
+    if (sock.id === room.hostId && room.config.hostPlays === false) {
+      sock.emit('word:options', getCategoryWordOptions(room).sort((a, b) => a.localeCompare(b)));
+    } else {
+      sock.emit('word:options', []);
+    }
+  }
+
   function replayRoundState(room, sock) {
     const pid = sock.data.playerId;
     if (room.phase === 'round') {
@@ -582,6 +662,8 @@ io.on('connection', (socket) => {
       const role = room.roleByPlayer.get(pid);
       if (role) sock.emit('round:started', role);
       sock.emit('phase:changed', { phase: 'voting', deadlineAt: room.votingDeadlineAt });
+      sock.emit('vote:state', { targetId: room.votes.get(pid) || null });
+      if (sock.id === room.hostId && room.config.hostPlays === false) sock.emit('vote:update', getLiveVotes(room));
     } else if ((room.phase === 'result' || room.phase === 'gameover') && room.revealData) {
       sock.emit(room.phase === 'gameover' ? 'game:over' : 'round:result', room.revealData);
     }
@@ -596,6 +678,9 @@ io.on('connection', (socket) => {
     const p = room.players.get(pid);
     if (p) {
       p.connected = false;
+      for (const [voterId, targetId] of room.votes) {
+        if (voterId === pid || targetId === pid) room.votes.delete(voterId);
+      }
       if (room.hostId === pid) {
         const next = [...room.players.values()].find((x) => x.connected);
         room.hostId = next ? next.id : null;
@@ -621,11 +706,20 @@ io.on('connection', (socket) => {
     socket.data.playerId = socket.id;
     socket.join(room.code);
     ackOk(ack);
-    socket.emit('room:joined', { room: serializeRoom(room), me: socket.id });
+    socket.emit('room:joined', { room: serializeRoom(room), me: socket.id, reconnectToken: room.players.get(socket.id).reconnectToken });
     broadcastLobby(room);
   });
 
-  socket.on('room:join', ({ code, name, playerId, customWords } = {}, ack) => {
+  socket.on('room:join', ({ code, name, playerId, reconnectToken, customWords } = {}, ack) => {
+    const now = Date.now();
+    const address = socket.handshake.address || 'unknown';
+    const attempts = (joinAttempts.get(address) || []).filter((at) => now - at < JOIN_WINDOW_MS);
+    if (attempts.length >= JOIN_MAX_ATTEMPTS) {
+      joinAttempts.set(address, attempts);
+      return ackErr(ack, 'Demasiados intentos. Inténtalo más tarde');
+    }
+    attempts.push(now);
+    joinAttempts.set(address, attempts);
     const room = rooms.get(normalizeCode(code));
     const clean = sanitizeName(name);
     if (!room) return ackErr(ack, 'Código no encontrado. ¿Seguro que es correcto?');
@@ -643,6 +737,9 @@ io.on('connection', (socket) => {
     // Reconexión del mismo jugador (recarga de página / caída de red)
     if (playerId && room.players.has(playerId)) {
       const p = room.players.get(playerId);
+      if (typeof reconnectToken !== 'string' || reconnectToken.length !== 64 || reconnectToken !== p.reconnectToken) {
+        return ackErr(ack, 'Sesión de reconexión no válida');
+      }
       const taken = [...room.players.values()].some(
         (x) => x.id !== playerId && x.name.toLowerCase() === clean.toLowerCase()
       );
@@ -668,7 +765,8 @@ io.on('connection', (socket) => {
       socket.data.playerId = socket.id;
       socket.join(room.code);
       ackOk(ack);
-      socket.emit('room:joined', { room: serializeRoom(room), me: socket.id });
+      socket.emit('room:joined', { room: serializeRoom(room), me: socket.id, reconnectToken: p.reconnectToken });
+      sendWordOptions(room, socket);
       broadcastLobby(room);
       replayRoundState(room, socket);
       return;
@@ -683,14 +781,16 @@ io.on('connection', (socket) => {
     if (room.players.size >= MAX_PLAYERS) return ackErr(ack, `Partida llena (máx ${MAX_PLAYERS} jugadores)`);
 
     if (!room.hostId) room.hostId = socket.id; // sala huérfana: el primero que entra manda
-    room.players.set(socket.id, { id: socket.id, name: clean, connected: true });
+    const reconnectTokenForPlayer = crypto.randomBytes(32).toString('hex');
+    room.players.set(socket.id, { id: socket.id, name: clean, connected: true, reconnectToken: reconnectTokenForPlayer });
     mergeWords();
     socket.data.roomCode = room.code;
     socket.data.playerId = socket.id;
     socket.join(room.code);
     ackOk(ack);
-    socket.emit('room:joined', { room: serializeRoom(room), me: socket.id });
-    broadcastLobby(room);
+      socket.emit('room:joined', { room: serializeRoom(room), me: socket.id, reconnectToken: reconnectTokenForPlayer });
+      sendWordOptions(room, socket);
+      broadcastLobby(room);
   });
 
   socket.on('lobby:leave', (ack) => {
@@ -705,13 +805,18 @@ io.on('connection', (socket) => {
   socket.on('round:leave', (ack) => {
     const room = getRoomOf(socket);
     if (!room || !socket.data.playerId) return ackErr(ack, 'No estás en una partida');
-    if (room.phase !== 'round') return ackErr(ack, 'Solo puedes salir durante la ronda');
     if (isHost(socket, room)) {
       endRoom(room);
       return ackOk(ack);
     }
     leaveRoom();
     socket.emit('game:ended');
+    ackOk(ack);
+  });
+  socket.on('game:end', (ack) => {
+    const room = getRoomOf(socket);
+    if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede finalizar la partida');
+    endRoom(room);
     ackOk(ack);
   });
   socket.on('disconnect', leaveRoom);
@@ -736,7 +841,9 @@ io.on('connection', (socket) => {
     if (typeof cfg.voting !== 'undefined') room.config.voting = cfg.voting !== false;
     if (typeof cfg.impostorHint !== 'undefined') room.config.impostorHint = cfg.impostorHint === true;
     if (typeof cfg.hostPlays !== 'undefined') room.config.hostPlays = cfg.hostPlays !== false;
+    if (typeof cfg.hostWordFromCatalog !== 'undefined') room.config.hostWordFromCatalog = cfg.hostWordFromCatalog === true;
     room.lastActivity = Date.now();
+    sendWordOptions(room, socket);
     broadcastLobby(room);
     ackOk(ack);
   });
@@ -768,7 +875,9 @@ io.on('connection', (socket) => {
     const connected = [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id) && !room.eliminatedIds.has(p.id));
     if (room.round === 0 && connected.length < MIN_PLAYERS) return ackErr(ack, `Se necesitan al menos ${MIN_PLAYERS} jugadores`);
     if (connected.length < 2) return ackErr(ack, 'No quedan suficientes jugadores activos');
-    if (!String(room.config.category || '').trim()) return ackErr(ack, 'Selecciona al menos una categoría');
+    if (!String(room.config.category || '').trim() && !parseCustomWords(room.config.customWords).length) {
+      return ackErr(ack, 'Selecciona al menos una categoría o escribe una palabra');
+    }
     startRound(room);
     ackOk(ack);
   });
@@ -778,11 +887,15 @@ io.on('connection', (socket) => {
     const pid = socket.data.playerId;
     if (!room || room.phase !== 'voting') return ackErr(ack, 'Todavía no se vota');
     if (!room.players.has(pid)) return ackErr(ack, 'No estás en la partida');
-    if (room.eliminatedIds.has(pid)) return ackErr(ack, 'Estás eliminado y solo puedes observar');
+    if (!isPlayingPlayer(room, pid)) return ackErr(ack, 'Solo los jugadores activos pueden votar');
     if (targetId === pid) return ackErr(ack, 'No puedes votarte a ti mismo');
-    if (!room.players.has(targetId) || room.eliminatedIds.has(targetId)) return ackErr(ack, 'Jugador no encontrado');
+    if (!room.players.has(targetId) || !isPlayingPlayer(room, targetId)) return ackErr(ack, 'Jugador no encontrado');
     room.votes.set(pid, targetId);
     room.lastActivity = Date.now();
+    if (room.config.hostPlays === false) {
+      const host = io.sockets.sockets.get(room.hostId);
+      if (host) host.emit('vote:update', getLiveVotes(room));
+    }
     ackOk(ack);
     checkVotes(room);
   });
@@ -793,6 +906,7 @@ io.on('connection', (socket) => {
     if (room.phase === 'lobby' || room.phase === 'result' || room.phase === 'gameover') return ackOk(ack);
     // con votación activa, "revelar" durante el debate = pasar a votación
     if (room.phase === 'round' && room.config.voting) {
+      clearAdvance(room);
       room.votingDeadlineAt = Date.now() + VOTE_TIME_MS;
       setPhase(room, 'voting', { deadlineAt: room.votingDeadlineAt });
       scheduleAdvance(room, VOTE_TIME_MS, () => resolveVotes(room));
