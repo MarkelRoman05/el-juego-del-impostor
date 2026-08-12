@@ -43,7 +43,14 @@ const io = new Server(server, {
 
 app.disable('x-powered-by');
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'dist', 'el-impostor', 'browser'), { maxAge: '1h' }));
+app.use(express.static(path.join(__dirname, 'dist', 'el-impostor', 'browser'), {
+  maxAge: '1h',
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+}));
 app.get('/healthz', (_req, res) => res.json({ ok: true, uptime: Math.round(process.uptime()) }));
 
 app.get('/api/categories', (_req, res) => {
@@ -880,5 +887,6 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 app.get('*', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, 'dist', 'el-impostor', 'browser', 'index.html'));
 });
