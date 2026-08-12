@@ -15,7 +15,9 @@ export type IconName =
   | "hourglass"
   | "theater"
   | "check"
-  | "plug";
+  | "plug"
+  | "mic"
+  | "plus";
 
 @Component({
   selector: "impostor-icon",
@@ -94,6 +96,13 @@ export type IconName =
         }
         @case ("plug") {
           <path d="M9 7v4M15 7v4M7 11h10v1a5 5 0 0 1-5 5v4M12 21v-4M8 7h8" />
+        }
+        @case ("mic") {
+          <rect x="9" y="3" width="6" height="10" rx="3" />
+          <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" />
+        }
+        @case ("plus") {
+          <path d="M12 5v14M5 12h14" />
         }
       }
     </svg>

@@ -71,7 +71,7 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? '✅' : '❌'} ${
   const re = await emitAckP(p1b, 'room:join', { code, name: 'P1', playerId: p1OldId, reconnectToken: p1Joined.reconnectToken });
   check('reconexión a mitad de ronda permitida', re.ok === true, JSON.stringify(re));
   const role = await restoredRole;
-  check('rol restaurado tras reconexión', role.round === 1 && ['player', 'impostor'].includes(role.role));
+  check('rol restaurado tras reconexión', ['player', 'impostor'].includes(role.role));
 
   // Una segunda recarga debe seguir funcionando con el nuevo socketId.
   const p1NewId = p1b.id;

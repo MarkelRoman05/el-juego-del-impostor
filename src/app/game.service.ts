@@ -12,6 +12,7 @@ export class GameService {
   readonly role = signal<RolePayload | null>(null);
   readonly reveal = signal<RevealData | null>(null);
   readonly wordOptions = signal<string[]>([]);
+  readonly starter = signal<{ name: string; id: string } | null>(null);
   readonly connected = signal(false);
   readonly reconnecting = signal(false);
   readonly toast = signal("");
@@ -62,6 +63,7 @@ export class GameService {
         this.me.set(me);
         this.reveal.set(null);
         this.wordOptions.set([]);
+        this.starter.set(null);
         this.phase.set(this.phaseFor(room.phase));
         this.saveSession({ name: this.name(), code: room.code, playerId: me, reconnectToken });
         history.replaceState(null, "", `/?c=${room.code}`);
@@ -76,22 +78,31 @@ export class GameService {
       "phase:changed",
       ({
         phase,
+        starter,
+        starterId,
       }: {
         phase: string;
+        starter?: string;
+        starterId?: string;
       }) => {
          if (phase === "round") {
            this.reveal.set(null);
+           this.starter.set(starter && starterId ? { name: starter, id: starterId } : null);
         }
         this.phase.set(this.phaseFor(phase));
         if (phase === "lobby") {
           this.role.set(null);
           this.reveal.set(null);
           this.wordOptions.set([]);
+          this.starter.set(null);
         }
       },
     );
     this.socket.on("round:started", (role: RolePayload) => {
       this.role.set(role);
+      if (role.starter && role.starterId) {
+        this.starter.set({ name: role.starter, id: role.starterId });
+      }
       this.phase.set("round");
     });
     this.socket.on("word:options", (words: string[]) => this.wordOptions.set(words));
@@ -343,5 +354,6 @@ export class GameService {
     this.role.set(null);
     this.reveal.set(null);
     this.wordOptions.set([]);
+    this.starter.set(null);
   }
 }

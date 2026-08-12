@@ -353,12 +353,13 @@ function createRoom(hostId, hostName) {
     hostId,
     originalHostId: hostId,
     phase: 'lobby',           // lobby | round | gameover
-    round: 0,
     players: new Map(),       // id -> { id, name, connected, reconnectToken }
     config: { impostors: 1, category: '', customWords: '', impostorHint: false, hostPlays: true, hostWordFromCatalog: false },
     word: null,
     categoryLabel: null,
+    starterName: null,
     impostorIds: null,        // Set<id>
+    previousImpostorIds: null, // Set<id> de la ronda anterior, para no repetir impostor dos rondas seguidas
     eliminatedIds: new Set(),
     roleByPlayer: new Map(),  // id -> payload privado de la ronda (para reconexiones)
     usedWords: [],
@@ -390,7 +391,6 @@ function serializeRoom(room) {
     code: room.code,
     hostId: room.hostId,
     phase: room.phase,
-    round: room.round,
     config: {
       impostors: room.config.impostors,
       category: room.config.category,
@@ -485,20 +485,34 @@ function startRound(room) {
           return adminConfig.categoryOverrides?.[key]?.label || (CATEGORIES[key] ? CATEGORIES[key].label : key);
         }).join(' + ');
 
-  const impostorIds = room.impostorIds || new Set(shuffle(connected.map((p) => p.id)).slice(0, impostors));
+  // Evita repetir impostores de la ronda anterior siempre que haya suficientes jugadores
+  // alternativos; si no quedan, vuelve al pool completo.
+  const impostorIds = room.impostorIds
+    || (() => {
+      const previous = room.previousImpostorIds;
+      const fresh = previous
+        ? connected.filter((p) => !previous.has(p.id))
+        : connected;
+      const pool = fresh.length >= impostors ? fresh : connected;
+      return new Set(shuffle(pool.map((p) => p.id)).slice(0, impostors));
+    })();
 
-  room.round += 1;
+  const starter = connected[Math.floor(Math.random() * connected.length)];
+  room.starterName = starter.name;
+  room.starterId = starter.id;
+
   room.word = word;
   room.categoryLabel = categoryLabel;
   room.impostorIds = impostorIds;
+  room.previousImpostorIds = new Set(impostorIds);
   room.revealData = null;
   room.roleByPlayer = new Map();
   room.startedAt = Date.now();
 
   for (const p of connected) {
     const payload = impostorIds.has(p.id)
-       ? { role: 'impostor', category: room.config.impostorHint ? categoryLabel : '', round: room.round }
-       : { role: 'player', word, category: categoryLabel, round: room.round };
+       ? { role: 'impostor', category: room.config.impostorHint ? categoryLabel : '', starter: starter.name, starterId: starter.id }
+       : { role: 'player', word, category: categoryLabel, starter: starter.name, starterId: starter.id };
     room.roleByPlayer.set(p.id, payload);
     const sock = io.sockets.sockets.get(p.id);
     if (sock) sock.emit('round:started', payload);
@@ -509,14 +523,15 @@ function startRound(room) {
       role: 'player',
       word,
       category: categoryLabel,
-      round: room.round,
+      starter: starter.name,
+      starterId: starter.id,
       impostors: [...impostorIds].map((id) => room.players.get(id)?.name || '?'),
     };
     room.roleByPlayer.set(host.id, payload);
     io.sockets.sockets.get(host.id)?.emit('round:started', payload);
   }
 
-  setPhase(room, 'round', { startedAt: room.startedAt });
+  setPhase(room, 'round', { startedAt: room.startedAt, starter: room.starterName, starterId: room.starterId });
 }
 
 function finishGame(room) {
@@ -524,9 +539,9 @@ function finishGame(room) {
 
   const playersById = Object.fromEntries([...room.players.entries()]);
   const result = {
-    round: room.round,
     gameOver: true,
     word: room.word,
+    category: room.categoryLabel,
     impostors: [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' })),
   };
   room.revealData = result;
@@ -538,6 +553,7 @@ function resetToLobby(room) {
   room.phase = 'lobby';
   room.word = null;
   room.categoryLabel = null;
+  room.starterName = null;
   room.impostorIds = null;
   room.eliminatedIds = new Set();
   room.roleByPlayer = new Map();
@@ -580,6 +596,10 @@ io.on('connection', (socket) => {
       room.impostorIds.delete(oldId);
       room.impostorIds.add(newId);
     }
+    if (room.previousImpostorIds && room.previousImpostorIds.has(oldId)) {
+      room.previousImpostorIds.delete(oldId);
+      room.previousImpostorIds.add(newId);
+    }
     if (room.eliminatedIds.has(oldId)) {
       room.eliminatedIds.delete(oldId);
       room.eliminatedIds.add(newId);
@@ -602,6 +622,7 @@ io.on('connection', (socket) => {
   function replayRoundState(room, sock) {
     const pid = sock.data.playerId;
     if (room.phase === 'round') {
+      if (room.starterName) sock.emit('phase:changed', { phase: 'round', starter: room.starterName, starterId: room.starterId });
       const role = room.roleByPlayer.get(pid);
       if (role) sock.emit('round:started', role);
     } else if (room.phase === 'gameover' && room.revealData) {
@@ -813,7 +834,7 @@ io.on('connection', (socket) => {
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede empezar');
     if (room.phase !== 'lobby') return ackErr(ack, 'Ya hay una ronda en curso');
     const connected = [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id) && !room.eliminatedIds.has(p.id));
-    if (room.round === 0 && connected.length < MIN_PLAYERS) return ackErr(ack, `Se necesitan al menos ${MIN_PLAYERS} jugadores`);
+    if (room.startedAt === 0 && connected.length < MIN_PLAYERS) return ackErr(ack, `Se necesitan al menos ${MIN_PLAYERS} jugadores`);
     if (connected.length < 2) return ackErr(ack, 'No quedan suficientes jugadores activos');
     if (!String(room.config.category || '').trim() && !parseCustomWords(room.config.customWords).length) {
       return ackErr(ack, 'Selecciona al menos una categoría o escribe una palabra');

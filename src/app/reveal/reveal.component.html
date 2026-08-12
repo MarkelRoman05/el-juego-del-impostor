@@ -3,8 +3,13 @@
     <div class="reveal-impostor">
         <div class="impostor-emoji"><impostor-icon name="detective" /></div>
         <div class="who">{{ (reveal.impostors ?? []) | names }}</div>
-        <div class="sub">La partida ha terminado</div>
-        <div class="word-box"><p class="eyebrow">LA PALABRA ERA</p><div class="word">{{ reveal.word }}</div></div>
+        <div class="sub">era el impostor</div>
+        <div class="word-box">
+            <p class="eyebrow">LA PALABRA ERA</p>
+            <div class="word">{{ reveal.word }}</div>
+            <p class="category">Categoría: {{ reveal.category }}</p>
+        </div>
     </div>
-    <button class="btn primary big" [disabled]="!isHost()" (click)="game.nextRound()">Nueva partida</button>
+    <button class="btn primary big" [disabled]="!isHost()" (click)="game.nextRound()"><impostor-icon name="plus" />
+        Nueva partida</button>
 </section>}

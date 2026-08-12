@@ -120,7 +120,7 @@ async function main() {
   const phaseChanged = await phaseRoundP;
   check('phase:changed a round', phaseChanged.phase === 'round');
   check('sin palabra en phase:changed', !JSON.stringify(phaseChanged).includes('volcán'));
-  for (const r of roles) console.log(`   ${r.label}: role=${r.role} round=${r.round}`);
+  for (const r of roles) console.log(`   ${r.label}: role=${r.role}`);
 
   const impostors = roles.filter((r) => r.role === 'impostor');
   const players = roles.filter((r) => r.role === 'player');
@@ -137,6 +137,7 @@ async function main() {
    const reveal = await revealP;
    check('reveal: 2 impostores con nombre', reveal.impostors.length === 2 && reveal.impostors.every((i) => i.name), reveal.impostors.map((i) => i.name).join(', '));
    check('reveal: palabra coincide', reveal.word === theWord);
+   check('reveal: categoría coincide', reveal.category === 'Palabras personalizadas', reveal.category);
 
    /* 6. siguiente partida */
   const backP = onEvent(host, 'phase:changed');

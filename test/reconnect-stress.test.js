@@ -67,7 +67,7 @@ const check = (condition, message) => {
     const joined = await joinedPromise;
     const role = await rolePromise;
     check(joined.me === replacement.id, `reconexión ${attempt}/5 actualiza el socket`);
-    check(role.role === expectedRole.role && role.round === expectedRole.round, `reconexión ${attempt}/5 restaura el rol`);
+    check(role.role === expectedRole.role, `reconexión ${attempt}/5 restaura el rol`);
     playerId = replacement.id;
     p1 = replacement;
   }

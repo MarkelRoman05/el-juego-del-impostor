@@ -23,7 +23,7 @@
 - `src/app/game.service.ts` is the client source of truth for Socket.IO state, session recovery, phases, roles, and final reveals; `server.js` owns room state and event validation.
 - The active game phases are `home`, `lobby`, `round`, `gameover`, and `waiting`; `AppComponent` selects standalone phase components and global overlays.
 - There is no in-game voting phase. The host ends a round through `impostor:mark`; the server emits `game:over` with impostor names and the word, then `round:next` returns to the lobby.
-- The impostor set is intentionally reused across rounds until reset to the lobby; do not change this without updating game semantics and tests.
+- Each round re-picks the impostor set avoiding the previous round's impostors when enough candidates exist; each `round:started` payload also carries `starter`, the player who speaks first. Do not change this without updating game semantics and tests.
 - Public player IDs are used for room actions, but reconnection requires the private `reconnectToken` from `room:joined`; keep it only in local session storage.
 - Preserve Socket.IO event names and private role payload boundaries. Custom word lists must never appear in serialized room/lobby payloads.
 - Angular uses strict TypeScript/templates, standalone components, signals, `inject`, and `OnPush`; use template bindings rather than DOM manipulation or `innerHTML`.

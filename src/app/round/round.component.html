@@ -1,4 +1,13 @@
 <section class="view active">
+    @if (game.starter(); as starter) {
+    <div class="starter-banner">
+        <span class="starter-mic"><impostor-icon name="mic" /></span>
+        <div class="starter-copy">
+            <span class="starter-label">Empieza hablando</span>
+            <strong>{{ starter.name }}{{ starter.id === game.me() ? ' (Tú)' : '' }}</strong>
+        </div>
+    </div>
+    }
     @if (game.isEliminated()) {
     <div class="empty-state eliminated-state">
         <div class="big-emoji"><impostor-icon name="theater" /></div>
@@ -21,7 +30,6 @@
         </div>
     </div>
     } @else {
-    <div class="round-top"><span class="chip">Ronda {{ game.role()?.round }}</span></div>
     <div class="hold-card" role="button" tabindex="0"
         [attr.aria-label]="revealed() ? 'Palabra secreta visible' : 'Mantén pulsado para ver la palabra'"
         [class.revealed]="revealed()" (pointerdown)="holdStart($event)" (pointerleave)="holdEnd()"
@@ -45,5 +53,5 @@
         <div class="hold-hint">Suelta para ocultar</div>
      </div>
       }
-      @if (isHost()) {<button class="btn secondary" (click)="finishGame()"><impostor-icon name="detective" /> Impostor encontrado - Finalizar partida</button>}
+      @if (isHost()) {<button class="btn secondary small end-round" (click)="finishGame()"><impostor-icon name="detective" /> Impostor encontrado - Finalizar sesión</button>}
 </section>

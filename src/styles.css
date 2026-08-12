@@ -217,6 +217,9 @@ textarea::placeholder {
   padding: 9px 13px;
   font-size: 12px;
 }
+.end-round {
+  align-self: center;
+}
 .btn:disabled {
   opacity: 0.42;
   cursor: not-allowed;
@@ -556,19 +559,44 @@ textarea::placeholder {
   transform: translateX(20px);
   background: #fff;
 }
-.round-top {
+.starter-banner {
+  align-self: center;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  padding: 9px 18px 9px 9px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  box-shadow: 0 14px 35px #0003;
+  animation: rise 0.25s ease both;
 }
-.chip {
-  padding: 7px 13px;
-  border: 1px solid #8b72ff66;
-  border-radius: 99px;
-  color: #c6bcff;
-  background: #8b72ff1d;
-  font-size: 13px;
-  font-weight: 700;
+.starter-mic {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--violet), #5e45d1);
+  color: #fff;
+  font-size: 21px;
+  box-shadow: 0 6px 18px #5e45d166;
+}
+.starter-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.starter-label {
+  color: var(--muted);
+  font: 500 11px/1 "DM Mono", monospace;
+  letter-spacing: 1.5px;
+}
+.starter-banner strong {
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.2;
 }
 .timer {
   color: var(--yellow);
@@ -593,7 +621,7 @@ textarea::placeholder {
   opacity: 1;
 }
 .hold-card {
-  min-height: 355px;
+  min-height: 420px;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -601,7 +629,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: center;
   gap: 18px;
-  padding: 24px;
+  padding: 30px;
   border: 1px solid var(--line);
   border-radius: 26px;
   background: var(--panel);
@@ -642,8 +670,8 @@ textarea::placeholder {
 }
 .secret-content {
   text-align: center;
-  filter: blur(15px);
-  opacity: 0.35;
+  filter: blur(40px);
+  opacity: 0.08;
   pointer-events: none;
   transition: 0.12s;
 }
@@ -734,10 +762,17 @@ textarea::placeholder {
   font-size: 26px;
   font-weight: 700;
 }
+.word-box .category {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
 .sub,
 .ballots {
   color: var(--muted);
   font-size: 13px;
+  margin-bottom: 12px;
 }
 .tally {
   display: flex;

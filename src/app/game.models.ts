@@ -23,7 +23,6 @@ export interface Room {
   code: string;
   hostId: string | null;
   phase: string;
-  round: number;
   players: Player[];
   config: RoomConfig;
 }
@@ -31,13 +30,14 @@ export interface RolePayload {
   role: Role;
   word?: string;
   category: string;
-  round: number;
+  starter?: string;
+  starterId?: string;
   impostors?: string[];
 }
 export interface RevealData {
-  round: number;
   gameOver: boolean;
   word?: string;
+  category?: string;
   reason?: string;
   impostors?: Array<{ id: string; name: string }>;
 }
