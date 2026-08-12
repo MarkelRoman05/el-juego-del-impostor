@@ -1,11 +1,19 @@
-import { ChangeDetectionStrategy, Component } from "@angular/core";
+import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { GameService } from "../game.service";
+import { Player } from "../game.models";
 import { IconComponent } from "../icon/icon.component";
 
 @Component({
   selector: "impostor-waiting",
   standalone: true,
-  imports: [IconComponent],
+  imports: [CommonModule, IconComponent],
   templateUrl: "./waiting.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class WaitingComponent {}
+export class WaitingComponent {
+  readonly game = inject(GameService);
+  trackPlayer(_: number, player: Player): string {
+    return player.id;
+  }
+}

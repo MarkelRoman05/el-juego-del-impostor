@@ -1,4 +1,11 @@
 <section class="view active empty-state">
+    <div class="players-bar">
+        <p class="players-label">Jugadores ({{ game.room()?.players?.length }})</p>
+        <div class="players"><span class="player-chip" [class.me]="player.id === game.me()"
+                [class.off]="!player.connected" *ngFor="let player of game.room()?.players; trackBy: trackPlayer"><i
+                    class="dot" [class.off]="!player.connected"></i>{{ player.name }} @if (player.id ===
+                game.room()?.hostId) {<b class="badge">HOST</b>}</span></div>
+    </div>
     <div class="big-emoji"><impostor-icon name="hourglass" /></div>
     <h2>La ronda está en curso</h2>
     <p class="subtitle">Espera a que termine para jugar la siguiente.</p>
