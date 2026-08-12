@@ -1,25 +1,25 @@
 <router-outlet />
 @if (!isAdmin()) {
-  <main class="shell">
-    @switch (game.phase()) {
-    @case ('home') { <impostor-home /> }
-    @case ('lobby') { <impostor-lobby /> }
-    @case ('round') { <impostor-round /> }
-    @case ('gameover') { <impostor-reveal /> }
-    @case ('waiting') { <impostor-waiting /> }
-    }
-    @if (game.isEliminated()) {
-      <div class="persistent-eliminated" role="status">ELIMINADO</div>
-    }
-    @if (game.room() && game.phase() !== 'lobby') {
-      <button class="persistent-exit" (click)="leaveGame()">
-        {{ game.me() === game.room()?.hostId ? 'Finalizar partida' : 'Salir de la partida' }}
-      </button>
-    }
-  </main>
-  @if (game.toast()) { <div class="toast" role="status">{{ game.toast() }}</div> }
-  @if (game.reconnecting()) { <div class="conn-overlay">
-      <div class="big-emoji"><impostor-icon name="plug" /></div>
-    <p>Reconectando…</p>
-  </div> }
+<main class="shell">
+  @switch (game.phase()) {
+  @case ('home') { <impostor-home /> }
+  @case ('lobby') { <impostor-lobby /> }
+  @case ('round') { <impostor-round /> }
+  @case ('gameover') { <impostor-reveal /> }
+  @case ('waiting') { <impostor-waiting /> }
+  }
+  @if (game.isEliminated()) {
+  <div class="persistent-eliminated" role="status">ELIMINADO</div>
+  }
+  @if (game.room() && game.phase() !== 'lobby') {
+  <button class="persistent-exit" (click)="leaveGame()">
+    {{ game.me() === game.room()?.hostId ? 'Finalizar partida' : 'Salir de la partida' }}
+  </button>
+  }
+</main>
+@if (game.toast()) { <div class="toast" role="status">{{ game.toast() }}</div> }
+@if (game.reconnecting()) { <div class="conn-overlay">
+  <div class="big-emoji"><impostor-icon name="plug" /></div>
+  <p>Reconectando…</p>
+</div> }
 }

@@ -2,12 +2,13 @@
     <div class="card lobby-card">
         <div class="code-box">
             <p class="eyebrow">CÓDIGO DE PARTIDA</p>
-            <div class="code">{{ game.room()?.code }}</div>
-            <div class="code-actions">
-                <button class="btn small" (click)="game.copyCode()"><impostor-icon name="clipboard" /> Copiar
-                    código</button>
-                <button class="btn small" (click)="game.copyLink()"><impostor-icon name="share" /> Copiar
-                    enlace</button>
+            <div class="code">
+                <button class="copy-icon" (click)="game.copyCode()"
+                    [attr.aria-label]="'Copiar el código ' + game.room()?.code"><impostor-icon
+                        name="clipboard" /></button>
+                <span class="code-value">{{ game.room()?.code }}</span>
+                <button class="copy-icon" (click)="game.shareLink()"
+                    aria-label="Compartir enlace de la partida"><impostor-icon name="share" /></button>
             </div>
         </div>
         <p class="players-label"><impostor-icon name="players" /> Jugadores
@@ -48,10 +49,11 @@
             @if (isHost() && game.room()?.config?.hostPlays === false) {
             <div class="exact-word-config">
                 <label for="exact-word"><impostor-icon name="note" /> Palabra de esta partida</label>
-                <select id="catalog-word" aria-label="Elegir una palabra existente" [ngModel]="selectedWord()"
-                    (ngModelChange)="setSelectedWord($event)">
-                    <option value="">Elegir una palabra existente…</option>
-                    <option *ngFor="let word of game.wordOptions()" [value]="word">{{ word }}</option>
+                <select id="catalog-word" aria-label="Elegir una palabra existente" [disabled]="!hasSelectedCategory()"
+                    [ngModel]="selectedWord()" (ngModelChange)="setSelectedWord($event)">
+                    <option value="">@if (hasSelectedCategory()) { Elegir una palabra existente… } @else {
+                        Selecciona una categoría… }</option>
+                    <option *ngFor="let word of wordOptions()" [value]="word">{{ word }}</option>
                 </select>
                 <input id="exact-word" type="text" maxlength="40" [ngModel]="manualWord()"
                     (ngModelChange)="setManualWord($event)" placeholder="O escribe una palabra nueva"
@@ -63,7 +65,7 @@
             (click)="game.start()"><impostor-icon name="play" />
             Empezar partida</button>
         <p class="hint">@if (!isHost()) { Esperando al anfitrión… } @else if (connectedPlayers() < 3) { Hacen falta al
-                menos 3 jugadores } @else { {{ connectedPlayers() }} jugadores listos }</p><button class="btn ghost"
-                    (click)="game.leave()">Salir de la partida</button>
+                menos 3 jugadores } @else { {{ connectedPlayers() }} jugadores listos }</p>        <button class="btn ghost"
+            (click)="game.leave()"><impostor-icon name="logout" /> Salir de la partida</button>
     </div>
 </section>

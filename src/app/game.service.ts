@@ -195,12 +195,21 @@ export class GameService {
     this.clearSession();
     this.reset();
   }
-  copyLink(): void {
+  shareLink(): void {
     const url = `${location.origin}/?c=${this.room()?.code ?? ""}`;
-    navigator.clipboard
-      ?.writeText(url)
-      .then(() => this.notify("Enlace copiado"))
-      .catch(() => window.prompt("Copia el enlace:", url));
+    const fallback = () =>
+      navigator.clipboard
+        ?.writeText(url)
+        .then(() => this.notify("Enlace copiado"))
+        .catch(() => window.prompt("Copia el enlace:", url));
+    if (typeof navigator.share === "function") {
+      navigator.share({ title: "El Impostor", text: "Únete a mi partida", url }).catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        fallback();
+      });
+    } else {
+      fallback();
+    }
   }
   copyCode(): void {
     const code = this.room()?.code ?? "";

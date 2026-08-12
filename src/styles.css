@@ -151,7 +151,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 13px;
   outline: 0;
-  padding: 14px 15px;
+  padding: 11px 11px;
 }
 input:focus,
 textarea:focus,
@@ -228,6 +228,10 @@ textarea::placeholder {
 .btn:disabled {
   opacity: 0.42;
   cursor: not-allowed;
+}
+.btn-copy,
+.btn-share {
+  background: #11131b;
 }
 .divider {
   display: flex;
@@ -392,17 +396,42 @@ textarea::placeholder {
   padding: 5px 0 4px;
 }
 .code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 6px 0 4px;
+}
+.code-value {
   color: var(--violet);
   font:
     500 52px "DM Mono",
     monospace;
   letter-spacing: 10px;
-  margin: 6px 0 10px;
 }
-.code-actions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
+.copy-icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #20222d;
+  transition:
+    transform 0.12s,
+    filter 0.15s;
+}
+.copy-icon:hover {
+  filter: brightness(1.12);
+}
+.copy-icon:active {
+  transform: scale(0.94);
+}
+.copy-icon .icon {
+  width: 1.35em;
+  height: 1.35em;
 }
 .players {
   display: flex;
@@ -518,7 +547,7 @@ textarea::placeholder {
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  color: var(--muted);
+  color: var(--ink);
   background: #11131b;
   font-size: 12px;
   cursor: pointer;
@@ -527,11 +556,43 @@ textarea::placeholder {
   border-color: var(--violet);
   color: var(--ink);
   background: #8b72ff19;
+  transition: 0.2s;
 }
 .check-option input {
-  width: auto;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin: 0;
   padding: 0;
-  accent-color: var(--violet);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #11131b;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.check-option input:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+.check-option input:checked {
+  background: var(--violet);
+  border-color: var(--violet);
+}
+.check-option input:checked::before {
+  content: "✓";
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+}
+.check-option input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .stepper {
   display: flex;

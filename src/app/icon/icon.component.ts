@@ -19,7 +19,8 @@ export type IconName =
   | "plug"
   | "mic"
   | "plus"
-  | "download";
+  | "download"
+  | "logout";
 
 @Component({
   selector: "impostor-icon",
@@ -60,12 +61,14 @@ export type IconName =
           <path d="M16 3v4h3M8 12h8M8 16h6" />
         }
         @case ("clipboard") {
-          <path d="M8 5h8a2 2 0 0 1 2 2v14H6V7a2 2 0 0 1 2-2Z" />
-          <path d="M9 3h6v4H9zM9 12l2 2 4-4" />
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         }
         @case ("share") {
-          <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
-          <path d="M16 6l-4-4-4 4M12 2v13" />
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
         }
         @case ("books") {
           <path d="M4 5h4v15H4zM10 4h4v16h-4zM16 6h4v14h-4z" />
@@ -114,6 +117,9 @@ export type IconName =
         }
         @case ("download") {
           <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
+        }
+        @case ("logout") {
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
         }
       }
     </svg>

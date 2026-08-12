@@ -431,6 +431,7 @@ function getWordPool(room) {
   return allWords.length ? allWords : CATEGORIES.animales.words;
 }
 function getCategoryWordOptions(room) {
+  if (!room.config.category) return [];
   const customCats = adminConfig.customCategories || {};
   const pool = categoryKeys(room.config.category).flatMap((key) => {
     if (key === 'personalizadas') return [];

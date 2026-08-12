@@ -18,6 +18,7 @@ export class LobbyComponent implements OnInit {
   readonly selectedWord = signal("");
   readonly manualWord = signal("");
   readonly exactWord = computed(() => this.selectedWord() || this.manualWord());
+  readonly wordOptions = computed(() => (this.hasSelectedCategory() ? this.game.wordOptions() : []));
 
   async ngOnInit(): Promise<void> {
     try {
