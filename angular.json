@@ -18,6 +18,7 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               { "glob": "manifest.webmanifest", "input": "src/assets", "output": "." },
+              { "glob": "sw.js", "input": "src/assets", "output": "." },
               { "glob": "icon.svg", "input": "src/assets", "output": "." }
             ],
             "styles": ["src/styles.css"]

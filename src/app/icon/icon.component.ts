@@ -17,7 +17,8 @@ export type IconName =
   | "check"
   | "plug"
   | "mic"
-  | "plus";
+  | "plus"
+  | "download";
 
 @Component({
   selector: "impostor-icon",
@@ -103,6 +104,9 @@ export type IconName =
         }
         @case ("plus") {
           <path d="M12 5v14M5 12h14" />
+        }
+        @case ("download") {
+          <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
         }
       }
     </svg>

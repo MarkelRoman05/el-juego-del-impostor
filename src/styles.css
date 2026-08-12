@@ -217,6 +217,11 @@ textarea::placeholder {
   padding: 9px 13px;
   font-size: 12px;
 }
+.btn.small.install-btn {
+  align-self: center;
+  padding: 14px 30px;
+  font-size: 13px;
+}
 .end-round {
   align-self: center;
 }

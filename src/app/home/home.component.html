@@ -13,5 +13,9 @@
         class="btn secondary" (click)="join()">Unirse</button></div>
   </div>
   <p class="hint footer-note">3+ jugadores · Sin registro · Cada persona juega desde su móvil</p>
+  @if (showInstall()) {
+    <button class="btn ghost small install-btn" (click)="install()"><impostor-icon name="download" />
+      Instalar app en el navegador</button>
+  }
   <p class="admin-link"><a href="#/admin/login">Admin</a></p>
 </section>
