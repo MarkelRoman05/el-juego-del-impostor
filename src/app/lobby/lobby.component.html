@@ -10,14 +10,18 @@
                     enlace</button>
             </div>
         </div>
+        <p class="players-label"><impostor-icon name="players" /> Jugadores
+            ({{ game.room()?.players?.length }})</p>
         <div class="players"><span class="player-chip" [class.me]="player.id === game.me()"
                 [class.off]="!player.connected" *ngFor="let player of game.room()?.players; trackBy: trackPlayer"><i
                     class="dot" [class.off]="!player.connected"></i>{{ player.name }} @if (player.id ===
                 game.room()?.hostId) {<b class="badge">HOST</b>} @if (isHost() && player.id !== game.me()) {<button
-                    class="kick" (click)="game.kick(player.id)" [attr.aria-label]="'Expulsar a ' + player.name">×</button>}</span></div>
+                    class="kick" (click)="game.kick(player.id)"
+                    [attr.aria-label]="'Expulsar a ' + player.name">×</button>}</span></div>
         <div class="config">
             <div class="config-row"><span><impostor-icon name="detective" /> Impostores</span>
-                <div class="stepper"><button aria-label="Reducir número de impostores" [disabled]="!isHost() || game.room()!.config.impostors <= 1"
+                <div class="stepper"><button aria-label="Reducir número de impostores"
+                        [disabled]="!isHost() || game.room()!.config.impostors <= 1"
                         (click)="setConfig('impostors', game.room()!.config.impostors - 1)">−</button><b>{{
                         game.room()?.config?.impostors }}</b><button aria-label="Aumentar número de impostores"
                         [disabled]="!isHost() || game.room()!.config.impostors >= maxImpostors()"
@@ -44,12 +48,14 @@
             @if (isHost() && game.room()?.config?.hostPlays === false) {
             <div class="exact-word-config">
                 <label for="exact-word"><impostor-icon name="note" /> Palabra de esta partida</label>
-                <select id="catalog-word" aria-label="Elegir una palabra existente" [ngModel]="selectedWord()" (ngModelChange)="setSelectedWord($event)">
+                <select id="catalog-word" aria-label="Elegir una palabra existente" [ngModel]="selectedWord()"
+                    (ngModelChange)="setSelectedWord($event)">
                     <option value="">Elegir una palabra existente…</option>
                     <option *ngFor="let word of game.wordOptions()" [value]="word">{{ word }}</option>
                 </select>
                 <input id="exact-word" type="text" maxlength="40" [ngModel]="manualWord()"
-                    (ngModelChange)="setManualWord($event)" placeholder="O escribe una palabra nueva" autocomplete="off" />
+                    (ngModelChange)="setManualWord($event)" placeholder="O escribe una palabra nueva"
+                    autocomplete="off" />
                 <small>Si la dejas vacía, se elegirá una al azar.</small>
             </div>
             }

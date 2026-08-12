@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input } from "@angular/core";
 
 export type IconName =
+  | "players"
   | "detective"
   | "game"
   | "note"
@@ -36,6 +37,12 @@ export type IconName =
       aria-hidden="true"
     >
       @switch (name) {
+        @case ("players") {
+          <circle cx="9" cy="8" r="3.5" />
+          <path d="M3.5 20c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" />
+          <circle cx="17" cy="9" r="2.5" />
+          <path d="M16 15.3c1.8.3 3.3 1.6 4 3.7" />
+        }
         @case ("detective") {
           <path d="M5 9.5 7 6h10l2 3.5" />
           <path d="M4 9.5h16v2H4z" />

@@ -425,10 +425,21 @@ textarea::placeholder {
   text-transform: uppercase;
   color: var(--muted);
 }
-.player-chip {
+.lobby-card .players-label {
   display: flex;
   align-items: center;
   gap: 7px;
+  margin: -2px 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+}
+.player-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 99px;
