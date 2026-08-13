@@ -11,6 +11,7 @@ export interface Player {
   name: string;
   connected: boolean;
   eliminated?: boolean;
+  waiting?: boolean;
 }
 export interface RoomConfig {
   impostors: number;

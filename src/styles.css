@@ -518,6 +518,10 @@ textarea::placeholder {
   border-radius: 5px;
   padding: 3px 5px;
 }
+.badge.wait {
+  background: var(--yellow);
+  color: var(--bg);
+}
 .kick {
   color: var(--muted);
   border: 0;

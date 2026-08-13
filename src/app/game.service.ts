@@ -64,7 +64,8 @@ export class GameService {
         this.reveal.set(null);
         this.wordOptions.set([]);
         this.starter.set(null);
-        this.phase.set(this.phaseFor(room.phase));
+        const waiting = room.players.some((player) => player.id === me && player.waiting);
+        this.phase.set(waiting ? "waiting" : this.phaseFor(room.phase));
         this.saveSession({ name: this.name(), code: room.code, playerId: me, reconnectToken });
         history.replaceState(null, "", `/?c=${room.code}`);
       },

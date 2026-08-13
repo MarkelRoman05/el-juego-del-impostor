@@ -16,7 +16,7 @@
         <div class="players">@for (player of game.room()?.players; track player.id) {<span class="player-chip"
                 [class.me]="player.id === game.me()" [class.off]="!player.connected"><i class="dot"
                     [class.off]="!player.connected"></i>{{ player.name }} @if (player.id === game.room()?.hostId) {<b
-                    class="badge">HOST</b>} @if (isHost() && player.id !== game.me()) {<button class="kick"
+                        class="badge">HOST</b>} @if (player.waiting) {<b class="badge wait">ESPERA</b>} @if (isHost() && player.id !== game.me()) {<button class="kick"
                     (click)="game.kick(player.id)" [attr.aria-label]="'Expulsar a ' + player.name">×</button>}</span>}
         </div>
         <div class="config">

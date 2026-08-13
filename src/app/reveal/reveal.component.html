@@ -4,7 +4,7 @@
         <div class="players">@for (player of game.room()?.players; track player.id) {<span class="player-chip"
                 [class.me]="player.id === game.me()" [class.off]="!player.connected"><i class="dot"
                     [class.off]="!player.connected"></i>{{ player.name }} @if (player.id === game.room()?.hostId) {<b
-                    class="badge">HOST</b>}</span>}</div>
+                        class="badge">HOST</b>} @if (player.waiting) {<b class="badge wait">ESPERA</b>}</span>}</div>
     </div>
     <div class="code-box compact">
         <p class="eyebrow">CÓDIGO DE PARTIDA: <span class="code-value">{{ game.room()?.code }}</span></p>

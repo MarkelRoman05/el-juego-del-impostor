@@ -201,6 +201,7 @@ const sanitizeCategoryKey = (raw) => {
 };
 const isPlayingPlayer = (room, playerId) =>
   !room.eliminatedIds.has(playerId) &&
+  !room.waitingIds.has(playerId) &&
   (room.config.hostPlays !== false || playerId !== room.hostId);
 const cleanCategoryWords = (words) => {
   const seen = new Set();
@@ -368,6 +369,7 @@ function createRoom(hostId, hostName) {
     impostorIds: null,        // Set<id>
     previousImpostorIds: null, // Set<id> de la ronda anterior, para no repetir impostor dos rondas seguidas
     eliminatedIds: new Set(),
+    waitingIds: new Set(),    // Set<id> de jugadores que entraron con la ronda en curso
     roleByPlayer: new Map(),  // id -> payload privado de la ronda (para reconexiones)
     usedWords: [],
     revealData: null,
@@ -406,7 +408,7 @@ function serializeRoom(room) {
       // Privacidad: las palabras personalizadas NUNCA se serializan; solo su número
       customWordsCount: parseCustomWords(room.config.customWords).length,
     },
-     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, connected: p.connected, eliminated: room.eliminatedIds.has(p.id) })),
+     players: [...room.players.values()].map((p) => ({ id: p.id, name: p.name, connected: p.connected, eliminated: room.eliminatedIds.has(p.id), waiting: room.waitingIds.has(p.id) })),
   };
 }
 
@@ -553,8 +555,10 @@ function finishGame(room) {
     impostors: [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' })),
   };
   room.revealData = result;
+  room.waitingIds = new Set(); // los que esperaban ya entran a la siguiente ronda
   setPhase(room, 'gameover');
   io.to(room.code).emit('game:over', result);
+  broadcastLobby(room); // limpia el estado "esperando" del listado en todos los clientes
 }
 
 function resetToLobby(room) {
@@ -564,6 +568,7 @@ function resetToLobby(room) {
   room.starterName = null;
   room.impostorIds = null;
   room.eliminatedIds = new Set();
+  room.waitingIds = new Set();
   room.roleByPlayer = new Map();
   room.revealData = null;
   broadcastLobby(room);
@@ -612,6 +617,10 @@ io.on('connection', (socket) => {
       room.eliminatedIds.delete(oldId);
       room.eliminatedIds.add(newId);
     }
+    if (room.waitingIds.has(oldId)) {
+      room.waitingIds.delete(oldId);
+      room.waitingIds.add(newId);
+    }
     const role = room.roleByPlayer.get(oldId);
     if (role) {
       room.roleByPlayer.delete(oldId);
@@ -629,6 +638,7 @@ io.on('connection', (socket) => {
 
   function replayRoundState(room, sock) {
     const pid = sock.data.playerId;
+    if (room.waitingIds.has(pid)) return; // los que esperan no tienen rol en la ronda actual
     if (room.phase === 'round') {
       if (room.starterName) sock.emit('phase:changed', { phase: 'round', starter: room.starterName, starterId: room.starterId });
       const role = room.roleByPlayer.get(pid);
@@ -644,11 +654,12 @@ io.on('connection', (socket) => {
     socket.data.roomCode = null;
     socket.data.playerId = null;
     if (!room || !pid) return;
+    socket.leave(room.code); // al salirse no debe seguir recibiendo eventos de la sala
     const p = room.players.get(pid);
     if (p) {
       p.connected = false;
       if (room.hostId === pid) {
-        const next = [...room.players.values()].find((x) => x.connected);
+        const next = [...room.players.values()].find((x) => x.connected && !room.waitingIds.has(x.id));
         room.hostId = next ? next.id : null;
       }
       room.lastActivity = Date.now();
@@ -742,9 +753,15 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Nuevos jugadores solo entran entre rondas (las reconexiones con playerId
-    // ya han salido por la rama anterior); si no, inflan los votos esperados.
-    if (room.phase !== 'lobby') return ackErr(ack, 'La partida ya está en curso. Espera a la siguiente ronda');
+    // Nuevos jugadores: entran siempre entre rondas; con una ronda en curso se quedan
+    // esperando (no juegan esa ronda) y con el reveal ya abierto ven directamente el resultado.
+    // Sala huérfana con la ronda a medias (sin host): nadie puede terminarla, así que
+    // se reabre el lobby y el recién llegado toma el mando.
+    if (!room.hostId && room.phase !== 'lobby') resetToLobby(room);
+    const joiningMidRound = room.phase === 'round';
+    if (!joiningMidRound && room.phase !== 'lobby' && room.phase !== 'gameover') {
+      return ackErr(ack, 'La partida ya no admite jugadores');
+    }
 
     const taken = [...room.players.values()].some((x) => x.name.toLowerCase() === clean.toLowerCase());
     if (taken) return ackErr(ack, 'Ese nombre ya está en la partida');
@@ -753,6 +770,7 @@ io.on('connection', (socket) => {
     if (!room.hostId) room.hostId = socket.id; // sala huérfana: el primero que entra manda
     const reconnectTokenForPlayer = crypto.randomBytes(32).toString('hex');
     room.players.set(socket.id, { id: socket.id, name: clean, connected: true, reconnectToken: reconnectTokenForPlayer });
+    if (joiningMidRound) room.waitingIds.add(socket.id);
     mergeWords();
     socket.data.roomCode = room.code;
     socket.data.playerId = socket.id;
@@ -761,6 +779,7 @@ io.on('connection', (socket) => {
       socket.emit('room:joined', { room: serializeRoom(room), me: socket.id, reconnectToken: reconnectTokenForPlayer });
       sendWordOptions(room, socket);
       broadcastLobby(room);
+      replayRoundState(room, socket);
   });
 
   socket.on('lobby:leave', (ack) => {
