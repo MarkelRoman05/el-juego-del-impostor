@@ -171,6 +171,9 @@ textarea::placeholder {
     600 21px "DM Mono",
     monospace;
 }
+.name-input {
+  padding: 14px 11px;
+}
 .join-row {
   display: flex;
   gap: 10px;
@@ -178,6 +181,9 @@ textarea::placeholder {
 .join-row .code-input {
   flex: 1;
   min-width: 0;
+}
+.play-create-btn {
+  font-size: 13px;
 }
 .btn {
   border: 1px solid var(--line);
@@ -250,7 +256,7 @@ textarea::placeholder {
 }
 .hint {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.5;
   text-align: center;
   margin: 0;
@@ -391,6 +397,18 @@ textarea::placeholder {
 .hidden {
   display: none !important;
 }
+.code-box.compact {
+  padding: 0;
+  text-align: center;
+}
+.code-box.compact .code-value {
+  font:
+    600 18px "DM Mono",
+    monospace;
+  letter-spacing: 2px;
+  color: var(--violet);
+  margin-left: 6px;
+}
 .code-box {
   text-align: center;
   padding: 5px 0 4px;
@@ -399,7 +417,7 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 15px;
   margin: 6px 0 4px;
 }
 .code-value {
@@ -526,6 +544,11 @@ textarea::placeholder {
   max-width: 170px;
   padding: 9px 11px;
   font-size: 13px;
+}
+.loading {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 .value {
   color: var(--muted);

@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { GameService } from "../game.service";
-import { Player } from "../game.models";
 import { IconComponent } from "../icon/icon.component";
 
 @Component({
@@ -13,7 +12,4 @@ import { IconComponent } from "../icon/icon.component";
 })
 export class WaitingComponent {
   readonly game = inject(GameService);
-  trackPlayer(_: number, player: Player): string {
-    return player.id;
-  }
 }

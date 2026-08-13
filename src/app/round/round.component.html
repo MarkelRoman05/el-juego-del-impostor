@@ -1,10 +1,13 @@
 <section class="view active">
     <div class="players-bar">
         <p class="players-label">Jugadores ({{ game.room()?.players?.length }})</p>
-        <div class="players"><span class="player-chip" [class.me]="player.id === game.me()"
-                [class.off]="!player.connected" *ngFor="let player of game.room()?.players; trackBy: trackPlayer"><i
-                    class="dot" [class.off]="!player.connected"></i>{{ player.name }} @if (player.id ===
-                game.room()?.hostId) {<b class="badge">HOST</b>}</span></div>
+        <div class="players">@for (player of game.room()?.players; track player.id) {<span class="player-chip"
+                [class.me]="player.id === game.me()" [class.off]="!player.connected"><i class="dot"
+                    [class.off]="!player.connected"></i>{{ player.name }} @if (player.id === game.room()?.hostId) {<b
+                        class="badge">HOST</b>}</span>}</div>
+    </div>
+    <div class="code-box compact">
+        <p class="eyebrow">CÓDIGO DE PARTIDA: <span class="code-value">{{ game.room()?.code }}</span></p>
     </div>
     @if (game.starter(); as starter) {
     <div class="starter-banner">
@@ -60,5 +63,5 @@
         <div class="hold-hint">Suelta para ocultar</div>
      </div>
       }
-      @if (isHost()) {<button class="btn secondary small end-round" (click)="finishGame()"><impostor-icon name="detective" /> Impostor encontrado - Finalizar sesión</button>}
+      @if (isHost()) {<button class="btn secondary end-round" (click)="finishGame()"><impostor-icon name="detective" /> Impostor encontrado - Finalizar sesión</button>}
 </section>

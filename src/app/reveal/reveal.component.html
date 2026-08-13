@@ -1,10 +1,13 @@
 @if (game.reveal(); as reveal) {<section class="view active">
     <div class="players-bar">
         <p class="players-label">Jugadores ({{ game.room()?.players?.length }})</p>
-        <div class="players"><span class="player-chip" [class.me]="player.id === game.me()"
-                [class.off]="!player.connected" *ngFor="let player of game.room()?.players; trackBy: trackPlayer"><i
-                    class="dot" [class.off]="!player.connected"></i>{{ player.name }} @if (player.id ===
-                game.room()?.hostId) {<b class="badge">HOST</b>}</span></div>
+        <div class="players">@for (player of game.room()?.players; track player.id) {<span class="player-chip"
+                [class.me]="player.id === game.me()" [class.off]="!player.connected"><i class="dot"
+                    [class.off]="!player.connected"></i>{{ player.name }} @if (player.id === game.room()?.hostId) {<b
+                    class="badge">HOST</b>}</span>}</div>
+    </div>
+    <div class="code-box compact">
+        <p class="eyebrow">CÓDIGO DE PARTIDA: <span class="code-value">{{ game.room()?.code }}</span></p>
     </div>
     <h2><impostor-icon name="detective" /> Fin de la partida</h2>
     <div class="reveal-impostor">
@@ -17,6 +20,10 @@
             <p class="category">Categoría: {{ reveal.category }}</p>
         </div>
     </div>
-    <button class="btn primary big" [disabled]="!isHost()" (click)="game.nextRound()"><impostor-icon name="plus" />
-        Nueva partida</button>
+    @if (isHost()) {
+        <button class="btn primary big" (click)="game.nextRound()"><impostor-icon name="plus" />
+            Nueva partida</button>
+    }
+
+    <p class="hint">@if (!isHost()) { Esperando al host... }</p> 
 </section>}

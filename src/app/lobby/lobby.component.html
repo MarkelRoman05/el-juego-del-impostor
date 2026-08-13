@@ -13,12 +13,12 @@
         </div>
         <p class="players-label"><impostor-icon name="players" /> Jugadores
             ({{ game.room()?.players?.length }})</p>
-        <div class="players"><span class="player-chip" [class.me]="player.id === game.me()"
-                [class.off]="!player.connected" *ngFor="let player of game.room()?.players; trackBy: trackPlayer"><i
-                    class="dot" [class.off]="!player.connected"></i>{{ player.name }} @if (player.id ===
-                game.room()?.hostId) {<b class="badge">HOST</b>} @if (isHost() && player.id !== game.me()) {<button
-                    class="kick" (click)="game.kick(player.id)"
-                    [attr.aria-label]="'Expulsar a ' + player.name">×</button>}</span></div>
+        <div class="players">@for (player of game.room()?.players; track player.id) {<span class="player-chip"
+                [class.me]="player.id === game.me()" [class.off]="!player.connected"><i class="dot"
+                    [class.off]="!player.connected"></i>{{ player.name }} @if (player.id === game.room()?.hostId) {<b
+                    class="badge">HOST</b>} @if (isHost() && player.id !== game.me()) {<button class="kick"
+                    (click)="game.kick(player.id)" [attr.aria-label]="'Expulsar a ' + player.name">×</button>}</span>}
+        </div>
         <div class="config">
             <div class="config-row"><span><impostor-icon name="detective" /> Impostores</span>
                 <div class="stepper"><button aria-label="Reducir número de impostores"
@@ -29,23 +29,26 @@
                         (click)="setConfig('impostors', game.room()!.config.impostors + 1)">+</button></div>
             </div>
             <div class="category-config">
-                <div class="config-row"><span><impostor-icon name="books" /> Categorías</span><b class="value">{{
-                        isAllCategoriesSelected() ? 'Todas' : selectedCategories().length + ' seleccionadas' }}</b>
+                <div class="config-row"><span><impostor-icon name="books" /> Categorías</span>
+                    <b class="value">{{
+                        isAllCategoriesSelected() ? 'Todas (' + categories().length + ') seleccionadas' :
+                        selectedCategories().length + ' seleccionadas' }}</b>
                 </div>
-                <label class="check-option"><input type="checkbox" [disabled]="!isHost()"
-                        [ngModel]="isAllCategoriesSelected()"
+                @if (loadingCategories()) {<p class="loading">Cargando…</p>} @else {<label class="check-option"><input
+                        type="checkbox" [disabled]="!isHost()" [ngModel]="isAllCategoriesSelected()"
                         (ngModelChange)="setAllCategories($event)"><span>Todas</span></label>
-                <label class="check-option" *ngFor="let category of categories()"><input type="checkbox"
+                @for (category of categories(); track category[0]) {<label class="check-option"><input type="checkbox"
                         [disabled]="!isHost()" [ngModel]="isCategorySelected(category[0])"
-                        (ngModelChange)="setCategory(category[0], $event)"><span>{{ category[1] }}</span></label>
+                        (ngModelChange)="setCategory(category[0], $event)"><span>{{ category[1] }}</span></label>}}
             </div>
-            <div class="config-row"><span><impostor-icon name="detective" /> Pista al impostor</span><label
+            <div class="config-row"><span><impostor-icon name="detective" /> Pista al impostor (categoría)</span><label
                     class="switch"><input type="checkbox" [disabled]="!isHost()"
                         [ngModel]="game.room()?.config?.impostorHint"
                         (ngModelChange)="setConfig('impostorHint', $event)"><i></i></label></div>
-            @if (isHost()) {<div class="config-row"><span><impostor-icon name="game" /> ¿Quieres jugar?</span><label
-                    class="switch"><input type="checkbox" [ngModel]="game.room()?.config?.hostPlays !== false"
-                        (ngModelChange)="setConfig('hostPlays', $event)"><i></i></label></div>}
+            @if (isHost()) {<div class="config-row"><span><impostor-icon name="game" /> ¿Quieres jugar?</span>
+                <label class="switch"><input type="checkbox" [ngModel]="game.room()?.config?.hostPlays !== false"
+                        (ngModelChange)="setConfig('hostPlays', $event)"><i></i></label>
+            </div>}
             @if (isHost() && game.room()?.config?.hostPlays === false) {
             <div class="exact-word-config">
                 <label for="exact-word"><impostor-icon name="note" /> Palabra de esta partida</label>
@@ -53,7 +56,9 @@
                     [ngModel]="selectedWord()" (ngModelChange)="setSelectedWord($event)">
                     <option value="">@if (hasSelectedCategory()) { Elegir una palabra existente… } @else {
                         Selecciona una categoría… }</option>
-                    <option *ngFor="let word of wordOptions()" [value]="word">{{ word }}</option>
+                    @for (word of wordOptions(); track $index) {
+                    <option [value]="word">{{ word }}</option>
+                    }
                 </select>
                 <input id="exact-word" type="text" maxlength="40" [ngModel]="manualWord()"
                     (ngModelChange)="setManualWord($event)" placeholder="O escribe una palabra nueva"
@@ -61,11 +66,15 @@
                 <small>Si la dejas vacía, se elegirá una al azar.</small>
             </div>
             }
-        </div><button class="btn primary big" [disabled]="!isHost() || connectedPlayers() < 3 || !canStart()"
+        </div>
+        @if (isHost()) {
+        <button class="btn primary big" [disabled]="connectedPlayers() < 3 || !canStart()"
             (click)="game.start()"><impostor-icon name="play" />
             Empezar partida</button>
-        <p class="hint">@if (!isHost()) { Esperando al anfitrión… } @else if (connectedPlayers() < 3) { Hacen falta al
-                menos 3 jugadores } @else { {{ connectedPlayers() }} jugadores listos }</p>        <button class="btn ghost"
-            (click)="game.leave()"><impostor-icon name="logout" /> Salir de la partida</button>
+        }
+        <p class="hint">@if (!isHost()) { Esperando al host... } @else if (connectedPlayers() < 3) { Hacen falta al
+                menos 3 jugadores para empezar } @else { {{ connectedPlayers() }} jugadores listos }</p> <button
+                    class="btn ghost" (click)="game.leave()"><impostor-icon name="logout" /> Salir de la
+                    partida</button>
     </div>
 </section>

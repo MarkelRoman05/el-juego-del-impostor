@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { RoomConfig, Player } from "../game.models";
+import { RoomConfig } from "../game.models";
 import { GameService } from "../game.service";
 import { IconComponent } from "../icon/icon.component";
 
@@ -15,6 +15,7 @@ import { IconComponent } from "../icon/icon.component";
 export class LobbyComponent implements OnInit {
   readonly game = inject(GameService);
   readonly categories = signal<Array<[string, string]>>([]);
+  readonly loadingCategories = signal(true);
   readonly selectedWord = signal("");
   readonly manualWord = signal("");
   readonly exactWord = computed(() => this.selectedWord() || this.manualWord());
@@ -29,6 +30,8 @@ export class LobbyComponent implements OnInit {
       this.categories.set(entries.map(([key, cat]) => [key, cat.label]));
     } catch (err) {
       console.error("Failed to load categories:", err);
+    } finally {
+      this.loadingCategories.set(false);
     }
   }
 
@@ -97,8 +100,5 @@ export class LobbyComponent implements OnInit {
     } else {
       this.setConfig("category", "");
     }
-  }
-  trackPlayer(_: number, player: Player): string {
-    return player.id;
   }
 }
