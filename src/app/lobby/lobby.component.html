@@ -41,7 +41,7 @@
                         [disabled]="!isHost()" [ngModel]="isCategorySelected(category[0])"
                         (ngModelChange)="setCategory(category[0], $event)"><span>{{ category[1] }}</span></label>}}
             </div>
-            <div class="config-row"><span><impostor-icon name="detective" /> Pista al impostor (categoría)</span><label
+            <div class="config-row"><span><impostor-icon name="detective" /> Pista al impostor</span><label
                     class="switch"><input type="checkbox" [disabled]="!isHost()"
                         [ngModel]="game.room()?.config?.impostorHint"
                         (ngModelChange)="setConfig('impostorHint', $event)"><i></i></label></div>

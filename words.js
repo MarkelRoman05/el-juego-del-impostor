@@ -120,4 +120,69 @@ for (const key of Object.keys(CATEGORIES)) {
   }
 }
 
-module.exports = { CATEGORIES };
+// Pistas por categoría (una por categoría de producción, excluyendo personalizadas)
+// Las pistas deben tener sentido pero no ser triviales para el impostor
+const PISTAS = {
+  futbol: {
+    'Lamine Yamal': 'Es muy joven y juega en el Barcelona',
+    'Vinícius Jr': 'Juega en el Real Madrid y es extremo izquierdo',
+    'Rodri': 'Capitán del Manchester City y mediano español',
+    'Kylian Mbappé': 'Jugador francés, velocidad extrema',
+    'Lautaro Martínez': 'Delantero argentino, capitán inter',
+    'Federico Valverde': 'Volante uruguayo del Real Madrid',
+    'Pedri': 'Canterano del Barcelona, muy joven',
+    'Luka Modrić': 'Balón de Oro 2018, mediocentro croata',
+  },
+  objetos: {
+    'paraguas': 'Te protege cuando llueve, suele ser de tela',
+    'linterna': 'Sirve para ver en la oscuridad, usa pilas',
+    'taza': 'Contenedor para beber, suele tener mango',
+    'gafas': 'Ayuda a ver mejor, puede ser de sol o graduadas',
+    'mochila': 'Llevas cosas en la espalda al colegio/trabajo',
+    'llaves': 'Para abrirpuertas o coche, par de metal',
+    'reloj': 'Indica la hora, pueden ser de pulsera o de pared',
+    'auriculares': 'Para escuchar música o hablar por teléfono',
+  },
+  tecnología: {
+    'teléfono móvil': 'Dispositivo para comunicarse sin cables',
+    'ordenador portátil': 'Portátil, también llamado laptop',
+    'impresora': 'Imprime documentos en papel',
+    'wifi': 'Conexión inalámbrica a internet',
+    'red social': 'Plataforma para relacionarse online',
+    'videoconsola': 'Para jugar videojuegos en casa',
+    'robot': 'Máquina que puede realizar tareas automáticamente',
+    'inteligencia artificial': 'Software que simula inteligencia humana',
+  },
+  comida: {
+    'paella': 'Plato típico de Valencia con arroz y mariscos',
+    'tortilla': 'Patatas y huevos, clásica española',
+    'gazpacho': 'Sopa fría de verduras, típica de verano',
+    'jamón': 'Embutido ibérico, corte fino',
+    'queso': 'Derivado de la leche, muchos tipos',
+    'chocolate': 'Dulce de cacao, oscuro o con leche',
+    'pizza': 'Base de pan, salsa y queso, origen italiano',
+    'sushi': 'Rice with raw fish, origen japonés',
+  },
+  lugares: {
+    'Madrid': 'Capital de España, ciudad madrileña',
+    'Bilbao': 'Ciudad vasca, conocida por su arquitectura',
+    'París': 'Capital de Francia, ciudad del amor',
+    'Tokio': 'Capital de Japón, megaurbe futurista',
+    'Nueva York': 'Ciudad más poblada de EE.UU.',
+    'Roma': 'Ciudad italiana, capital del antiguo imperio',
+    'Londres': 'Capital del Reino Unido',
+    'Sídney': 'Ciudad australiana, oper house famous',
+  },
+  profesiones: {
+    'médico': 'Profesional de la salud, cura enfermedades',
+    'bombero': 'Salva gente y apaga incendios',
+    'profesor': 'Dedica su vida a enseñar',
+    'policía': 'Hace cumplir la ley y mantiene orden',
+    'piloto': 'Vuela aviones comerciales o privados',
+    'cocinero': 'Prepara comida en restaurantes',
+    'dentista': 'Cuidado de salud bucal y dientes',
+    'abogado': 'Profesional que defiende la ley',
+  },
+};
+
+module.exports = { CATEGORIES, PISTAS };

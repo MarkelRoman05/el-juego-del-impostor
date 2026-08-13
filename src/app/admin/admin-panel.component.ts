@@ -56,26 +56,37 @@ import { IconComponent } from "../icon/icon.component";
                 placeholder="Nombre de la categoría"
                  [disabled]="admin.loading()"
                />
-               <label class="field-label">Palabras</label>
+<label class="field-label">Palabras</label>
                <div class="word-list" aria-label="Palabras de la categoría">
-                 @for (word of editWords; track $index) {
-                   <div class="word-row">
-                     <input
-                       type="text"
-                       [ngModel]="word"
-                       (ngModelChange)="changeWord($index, $event)"
-                       [disabled]="admin.loading()"
-                       [attr.aria-label]="'Palabra ' + ($index + 1)"
-                     />
-                     <button
-                       type="button"
-                       class="btn danger small word-delete"
-                       (click)="removeWord($index)"
-                       [disabled]="admin.loading()"
-                       [attr.aria-label]="'Borrar ' + word"
-                     >
-                       Borrar
-                     </button>
+                  @for (word of editWords; track $index) {
+                    <div class="word-row">
+                      <input
+                        type="text"
+                        [ngModel]="word"
+                        (ngModelChange)="changeWord($index, $event)"
+                        [disabled]="admin.loading()"
+                        [attr.aria-label]="'Palabra ' + ($index + 1)"
+                      />
+                      <input
+                        type="text"
+                        [ngModel]="editPistas[$index] || ''"
+                        (ngModelChange)="editPistas[$index] = $event"
+                        [disabled]="admin.loading()"
+                        placeholder="Pista"
+                        [attr.aria-label]="'Pista de ' + word"
+                      />
+                      <button
+                        type="button"
+                        class="btn danger small word-delete"
+                        (click)="removeWord($index)"
+                        [disabled]="admin.loading()"
+                        [attr.aria-label]="'Borrar ' + word"
+                      >
+                        Borrar
+                      </button>
+                      @if (editPistas[$index]) {
+                        <span class="pista-tag">📝 {{ editPistas[$index] }}</span>
+                      }
                    </div>
                  }
                </div>
@@ -347,6 +358,7 @@ export class AdminPanelComponent implements OnInit {
 
    editLabel = "";
    editWords: string[] = [];
+   editPistas: string[] = [];
    newWord = "";
    private editKey = "";
 
@@ -356,6 +368,7 @@ export class AdminPanelComponent implements OnInit {
       return;
     }
     await this.admin.loadCategories();
+    this.editPistas = [];
   }
 
   async switchToRooms(): Promise<void> {
@@ -397,13 +410,14 @@ export class AdminPanelComponent implements OnInit {
     }));
   }
 
-   startNewCategory(): void {
-     this.editKey = "";
-     this.editLabel = "";
-     this.editWords = [];
-     this.newWord = "";
-     this.editingCategory.set("__new__");
-  }
+startNewCategory(): void {
+      this.editKey = "";
+      this.editLabel = "";
+      this.editWords = [];
+      this.editPistas = [];
+      this.newWord = "";
+      this.editingCategory.set("__new__");
+    }
 
   startEditCategory(key: string): void {
     const cat = this.admin.categories()[key];
@@ -411,6 +425,7 @@ export class AdminPanelComponent implements OnInit {
      this.editKey = key;
      this.editLabel = cat.label;
      this.editWords = [...cat.words];
+     this.editPistas = [...(cat.pistas || [])];
      this.newWord = "";
      this.editingCategory.set(key);
    }
@@ -440,22 +455,24 @@ export class AdminPanelComponent implements OnInit {
      return new Set(normalized).size !== normalized.length;
    }
 
-   async saveEditingCategory(): Promise<void> {
-     const words = this.editWords.map((word) => word.trim()).filter((word) => word.length >= 2 && word.length <= 40);
-     if (!this.editLabel.trim() || !words.length || this.hasDuplicateWords(words)) return;
-     if (this.editingCategory() === "__new__") {
-      const key = this.editLabel.trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30);
-      if (!key) return;
-      const ok = await this.admin.createCategory(key, this.editLabel.trim(), words);
-      if (ok) this.editingCategory.set(null);
-    } else {
-      const ok = await this.admin.updateCategory(this.editKey, {
-        label: this.editLabel.trim(),
-        words,
-      });
-      if (ok) this.editingCategory.set(null);
-    }
-  }
+async saveEditingCategory(): Promise<void> {
+      const words = this.editWords.map((word) => word.trim()).filter((word) => word.length >= 2 && word.length <= 40);
+      const pistas = this.editPistas.map((p) => p.trim()).filter((p) => p.length > 0);
+      if (!this.editLabel.trim() || !words.length || this.hasDuplicateWords(words)) return;
+      if (this.editingCategory() === "__new__") {
+       const key = this.editLabel.trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30);
+       if (!key) return;
+       const ok = await this.admin.createCategory(key, this.editLabel.trim(), words, pistas);
+       if (ok) this.editingCategory.set(null);
+     } else {
+       const ok = await this.admin.updateCategory(this.editKey, {
+         label: this.editLabel.trim(),
+         words,
+         pistas,
+       });
+       if (ok) this.editingCategory.set(null);
+     }
+   }
 
   async removeCategory(key: string): Promise<void> {
     const cat = this.admin.categories()[key];

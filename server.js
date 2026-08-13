@@ -4,7 +4,7 @@ const path = require('path');
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
-const { CATEGORIES } = require('./words');
+const { CATEGORIES, PISTAS } = require('./words');
 const fs = require('fs');
 const crypto = require('crypto');
 
@@ -114,17 +114,17 @@ app.get('/api/admin/categories', adminAuth, (_req, res) => {
 });
 
 app.post('/api/admin/categories', adminAuth, (req, res) => {
-  const { key, label, words } = req.body || {};
+  const { key, label, words, pistas } = req.body || {};
   const cleanKey = sanitizeCategoryKey(key);
   if (!cleanKey) return res.status(400).json({ error: 'Clave de categoría inválida' });
   if (CATEGORIES[cleanKey]) return res.status(400).json({ error: 'Esa categoría ya existe como built-in' });
-  if (!adminConfig.customCategories) adminConfig.customCategories = {};
+  if (adminConfig.customCategories) adminConfig.customCategories[cleanKey] = {};
   if (adminConfig.customCategories[cleanKey]) return res.status(400).json({ error: 'Esa categoría personalizada ya existe' });
   const cleanLabel = typeof label === 'string' ? label.trim().slice(0, 30) : '';
   if (!cleanLabel) return res.status(400).json({ error: 'El nombre es obligatorio' });
    const cleanWords = Array.isArray(words) ? cleanCategoryWords(words) : [];
   if (!cleanWords.length) return res.status(400).json({ error: 'Añade al menos una palabra' });
-  adminConfig.customCategories[cleanKey] = { label: cleanLabel, words: cleanWords };
+  adminConfig.customCategories[cleanKey] = { label: cleanLabel, words: cleanWords, pistas: Array.isArray(pistas) ? pistas : [] };
   saveAdminConfig(adminConfig);
   res.json({ ok: true, categories: getAdminCategories() });
 });
@@ -134,7 +134,7 @@ app.put('/api/admin/categories/:key', adminAuth, (req, res) => {
   const isBuiltIn = Boolean(CATEGORIES[key] && key !== 'mezcla');
   const isCustom = Boolean(adminConfig.customCategories?.[key]);
   if (!isBuiltIn && !isCustom) return res.status(404).json({ error: 'Categoría no encontrada' });
-  const { label, words } = req.body || {};
+  const { label, words, pistas } = req.body || {};
   const category = isBuiltIn
     ? (adminConfig.categoryOverrides[key] ||= { label: CATEGORIES[key].label, words: [...CATEGORIES[key].words] })
     : adminConfig.customCategories[key];
@@ -145,6 +145,9 @@ app.put('/api/admin/categories/:key', adminAuth, (req, res) => {
     const cleanWords = cleanCategoryWords(words);
     if (!cleanWords.length) return res.status(400).json({ error: 'La categoría debe tener al menos una palabra' });
     category.words = cleanWords;
+  }
+  if (Array.isArray(pistas)) {
+    category.pistas = pistas;
   }
   saveAdminConfig(adminConfig);
   res.json({ ok: true, categories: getAdminCategories() });
@@ -236,12 +239,13 @@ function getAdminCategories() {
     const override = adminConfig.categoryOverrides?.[key];
     categories[key] = {
       label: override?.label || cat.label,
-       words: cleanCategoryWords(override?.words || cat.words),
+      words: cleanCategoryWords(override?.words || cat.words),
+      pistas: override?.pistas || cat.pistas,
       custom: false,
     };
   }
   for (const [key, cat] of Object.entries(adminConfig.customCategories || {})) {
-     categories[key] = { label: cat.label, words: cleanCategoryWords(cat.words), custom: true };
+     categories[key] = { label: cat.label, words: cleanCategoryWords(cat.words), pistas: cat.pistas, custom: true };
   }
   return categories;
 }
@@ -519,10 +523,18 @@ function startRound(room) {
   room.roleByPlayer = new Map();
   room.startedAt = Date.now();
 
+  const getPista = (word) => {
+    const categoria = categoryLabelForWord(room, word);
+    if (!categoria) return '';
+    const pistaObj = PISTAS[categoria];
+    if (!pistaObj) return '';
+    return pistaObj[word] || '';
+  };
+
   for (const p of connected) {
     const payload = impostorIds.has(p.id)
-       ? { role: 'impostor', category: room.config.impostorHint ? categoryLabel : '', starter: starter.name, starterId: starter.id }
-       : { role: 'player', word, category: categoryLabel, starter: starter.name, starterId: starter.id };
+       ? { role: 'impostor', category: room.config.impostorHint ? categoryLabel : '', starter: starter.name, starterId: starter.id, pista: getPista(word) }
+       : { role: 'player', word, category: categoryLabel, starter: starter.name, starterId: starter.id, pista: getPista(word) };
     room.roleByPlayer.set(p.id, payload);
     const sock = io.sockets.sockets.get(p.id);
     if (sock) sock.emit('round:started', payload);

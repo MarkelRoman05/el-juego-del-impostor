@@ -33,6 +33,9 @@
             <span class="observer-label">PALABRA</span>
             <div class="word">{{ game.role()?.word }}</div>
             <div class="category-chip">Categoría: {{ game.role()?.category }}</div>
+            @if (game.role()?.pista) {
+              <div class="pista-chip">Pista: {{ game.role()?.pista }}</div>
+            }
         </div>
         <div class="observer-impostor">
             <span class="observer-label">IMPOSTOR</span>
@@ -50,18 +53,19 @@
             <div class="lock"><impostor-icon name="lock" /></div>
             <div class="hold-text">Mantén pulsado<br>para ver la palabra</div>
         </div>
-        <div class="secret-content">@if (game.role()?.role === 'impostor') {<div class="impostor-emoji"><impostor-icon
-                    name="detective" /></div>
+        <div class="secret-content">@if (game.role()?.role === 'impostor') {
+            <div class="impostor-emoji"><impostor-icon name="detective" /></div>
             <div class="impostor-title">¡ERES EL IMPOSTOR!</div>
             @if (game.role()?.category) {<div class="impostor-sub">Finge que la sabes. Tu pista:
-            </div>
-            <div class="category-chip big">{{ game.role()?.category }}</div>} @else {<div class="impostor-sub">Finge que
-                la sabes. No tienes pista.</div>}} @else {<div class="word">{{
-                game.role()?.word }}</div>
+            </div>}
+            @if (game.role()?.pista) {<div class="impostor-sub">Pista: {{ game.role()?.pista }}</div>}
+            @if (!game.role()?.pista) {<div class="impostor-sub">Finge que la sabes. No tienes pista.</div>}
+            @if (game.role()?.category) {<div class="category-chip big">{{ game.role()?.category }}</div>}
+        } @else {<div class="word">{{ game.role()?.word }}</div>
             <div class="category-chip">Categoría: {{ game.role()?.category }}</div>}
         </div>
         <div class="hold-hint">Suelta para ocultar</div>
      </div>
-      }
-      @if (isHost()) {<button class="btn secondary end-round" (click)="finishGame()"><impostor-icon name="detective" /> Impostor encontrado - Finalizar sesión</button>}
+     @if (isHost()) {<button class="btn secondary end-round" (click)="finishGame()"><impostor-icon name="detective" /> Impostor encontrado - Finalizar sesión</button>}
+    }
 </section>
