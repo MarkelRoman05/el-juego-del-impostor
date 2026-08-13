@@ -117,6 +117,7 @@ h1 {
 h2 {
   font-size: 28px;
   text-align: center;
+  justify-content: center;
   margin: 0;
   letter-spacing: -0.8px;
 }
@@ -408,6 +409,9 @@ textarea::placeholder {
   letter-spacing: 2px;
   color: var(--violet);
   margin-left: 6px;
+}
+.round-title {
+  text-align: center;
 }
 .code-box {
   text-align: center;
