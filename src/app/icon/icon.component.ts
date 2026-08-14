@@ -21,7 +21,9 @@ export type IconName =
   | "plus"
   | "download"
   | "logout"
-  | "question";
+  | "question"
+  | "tick"
+  | "cross";
 
 @Component({
   selector: "impostor-icon",
@@ -44,6 +46,12 @@ export type IconName =
           <path d="M3.5 20c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" />
           <circle cx="17" cy="9" r="2.5" />
           <path d="M16 15.3c1.8.3 3.3 1.6 4 3.7" />
+        }
+        @case ("tick") {
+          <path d="m5 13 4 4L19 7" />
+        }
+        @case ("cross") {
+          <path d="M18 6 6 18M6 6l12 12" />
         }
         @case ("detective") {
           <path d="M5 9.5 7 6h10l2 3.5" />

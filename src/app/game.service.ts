@@ -359,6 +359,7 @@ export class GameService {
   }
   private reset(): void {
     this.phase.set("home");
+    if (location.search) history.replaceState(null, "", "/");
     this.room.set(null);
     this.me.set(null);
     this.role.set(null);
