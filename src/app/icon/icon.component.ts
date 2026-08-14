@@ -20,7 +20,8 @@ export type IconName =
   | "mic"
   | "plus"
   | "download"
-  | "logout";
+  | "logout"
+  | "question";
 
 @Component({
   selector: "impostor-icon",
@@ -120,6 +121,11 @@ export type IconName =
         }
         @case ("logout") {
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+        }
+        @case ("question") {
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.9.6-1.5 1.3-1.5 2.2" />
+          <circle cx="12" cy="16.5" r="0.7" fill="currentColor" />
         }
       }
     </svg>

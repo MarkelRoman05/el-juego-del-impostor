@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from "@angular/core";
 import { Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { AdminService } from "./admin.service";
@@ -42,36 +47,41 @@ import { IconComponent } from "../icon/icon.component";
           @if (admin.error()) {
             <p class="error-msg">{{ admin.error() }}</p>
           }
-          <button type="submit" class="btn primary big" style="margin-top: 13px;" [disabled]="admin.loading()">
+          <button
+            type="submit"
+            class="btn primary big"
+            style="margin-top: 13px;"
+            [disabled]="admin.loading()"
+          >
             <impostor-icon name="lock" />
             {{ admin.loading() ? "Entrando..." : "Entrar" }}
           </button>
         </form>
-        <button class="btn ghost" (click)="goBack()">
-          Volver al juego
-        </button>
+        <button class="btn ghost" (click)="goBack()">Volver al juego</button>
       </div>
     </section>
   `,
-  styles: [`
-    .admin-login-view {
-      min-height: 100dvh;
-      justify-content: center;
-      width: min(100% - 28px, 470px);
-      margin: auto;
-      padding: 18px 0;
-    }
-    .error-msg {
-      color: var(--pink);
-      font-size: 13px;
-      text-align: center;
-      margin: 8px 0;
-      padding: 10px;
-      background: #2a1526;
-      border: 1px solid #ff6b9680;
-      border-radius: 10px;
-    }
-  `],
+  styles: [
+    `
+      .admin-login-view {
+        min-height: 100dvh;
+        justify-content: center;
+        width: min(100% - 28px, 470px);
+        margin: auto;
+        padding: 18px 0;
+      }
+      .error-msg {
+        color: var(--pink);
+        font-size: 13px;
+        text-align: center;
+        margin: 8px 0;
+        padding: 10px;
+        background: #2a1526;
+        border: 1px solid #ff6b9680;
+        border-radius: 10px;
+      }
+    `,
+  ],
 })
 export class AdminLoginComponent {
   readonly admin = inject(AdminService);
