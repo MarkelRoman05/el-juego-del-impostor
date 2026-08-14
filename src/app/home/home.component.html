@@ -1,4 +1,9 @@
 <section class="view active home-view">
+  <div class="home-topbar">
+    <button class="btn ghost small help-btn" type="button" (click)="showHelp.set(true)">
+      <impostor-icon name="question" /> Ayuda
+    </button>
+  </div>
   <header class="hero">
     <div class="logo"><impostor-icon name="detective" /></div>
     <h1>El Impostor</h1>
@@ -6,7 +11,8 @@
   <div class="card form-card">
     <label for="name">Nombre</label><input id="name" class="name-input" [(ngModel)]="name" maxlength="20"
       placeholder="Escribe un nombre..." autocomplete="off" (keydown.enter)="create()">
-    <button class="btn primary big play-create-btn" (click)="create()"><impostor-icon name="game" /> Crear partida</button>
+    <button class="btn primary big play-create-btn" (click)="create()"><impostor-icon name="game" /> Crear
+      partida</button>
     <div class="divider"><span>o únete con un código</span></div>
     <div class="join-block">
       <label for="code" class="code-label">Código de sala</label>
@@ -14,13 +20,14 @@
         <div class="code-field">
           <div class="code-slots">
             @for (i of [0, 1, 2, 3]; track i) {
-              <span class="code-slot" [class.code-slot--active]="codeFocused() && i === (code.length < 4 ? code.length : 3)">{{ code[i] || "" }}</span>
+            <span class="code-slot"
+              [class.code-slot--active]="codeFocused() && i === (code.length < 4 ? code.length : 3)">{{ code[i] || ""
+              }}</span>
             }
           </div>
-          <input #codeInput class="code-input" id="code" [ngModel]="code"
-            (ngModelChange)="setCode($event)" maxlength="4"
-            (focus)="codeFocused.set(true)" (blur)="codeFocused.set(false)"
-            aria-label="Código de sala" autocomplete="off" (keydown.enter)="join()">
+          <input #codeInput class="code-input" id="code" [ngModel]="code" (ngModelChange)="setCode($event)"
+            maxlength="4" (focus)="codeFocused.set(true)" (blur)="codeFocused.set(false)" aria-label="Código de sala"
+            autocomplete="off" (keydown.enter)="join()">
         </div>
         <button class="btn secondary" (click)="join()">Unirse</button>
       </div>
@@ -28,8 +35,48 @@
   </div>
   <p class="hint footer-note">3+ jugadores · Sin registro</p>
   @if (showInstall()) {
-    <button class="btn ghost small install-btn" (click)="install()"><impostor-icon name="download" />
-      Instalar app en el navegador</button>
+  <button class="btn ghost small install-btn" (click)="install()"><impostor-icon name="download" />
+    Instalar app en el navegador</button>
   }
   <p class="admin-link"><a href="#/admin/login">Admin</a></p>
 </section>
+
+@if (showHelp()) {
+<div class="modal-backdrop" (click)="showHelp.set(false)">
+  <div class="modal card help-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+    aria-label="Ayuda">
+    <div class="modal-heading">
+      <h2>¿Cómo se juega?</h2>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="showHelp.set(false)">×</button>
+    </div>
+    <div class="help-body">
+      <section class="help-section">
+        <h3>1. Pon tu nombre</h3>
+        <p>Escribe un nombre (hasta 20 caracteres) para identificarte en la partida. No hay que registrarse.</p>
+      </section>
+      <section class="help-section">
+        <h3>2. Crea una sala o únete a una existente</h3>
+        <p>Pulsa <strong>Crear partida</strong>. Serás el anfitrión y obtendrás un código de 4 letras o números para
+          compartir con tus amigos.</p>
+        <p>Si alguien ya creó una, pídele que te comparta o te diga el código de 4 caracteres. Introdúcelo y pulsa
+          <strong>Unirse</strong>.</p>
+        <p><b>Nota: </b>Si el anfitrión no quiere jugar, puede crear una partida y hostearla él sin jugar.</p>
+      </section>
+      <section class="help-section">
+        <h3>3. Empieza la partida</h3>
+        <p>Con 3+ jugadores, el anfitrión inicia la ronda. A cada jugador (menos al impostor o impostores) se le asigna
+          una palabra en secreto. El impostor no la conoce. Puedes activar pistas.</p>
+      </section>
+      <section class="help-section">
+        <h3>4. Juega y descubre al impostor</h3>
+        <p>Turno a turno, cada jugador dice una palabra o pista relacionada sin revelarla. Empieza hablando quien se indique arriba.
+          Observa, debate y al final de cada ronda, votáis quién creéis que es el impostor.
+          Si no lo descubrís, seguís jugando hasta que el impostor acierte la palabra o se le descubra. Una vez acabada la ronda,
+          el anfitrión puede iniciar otra ronda con la misma sala y jugadores.
+        </p>
+      </section>
+    </div>
+    <button class="btn primary big" type="button" (click)="showHelp.set(false)">Entendido</button>
+  </div>
+</div>
+}

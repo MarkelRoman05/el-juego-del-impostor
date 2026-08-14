@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { GameService } from "../game.service";
 import { IconComponent } from "../icon/icon.component";
@@ -19,8 +19,14 @@ export class HomeComponent {
   readonly codeFocused = signal(false);
 
   readonly showInstall = signal(false);
+  readonly showHelp = signal(false);
   private installPrompt: InstallPromptEvent | null = null;
   private readonly isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  @HostListener("document:keydown.escape")
+  onEscape(): void {
+    if (this.showHelp()) this.showHelp.set(false);
+  }
 
   constructor() {
     const isStandalone =

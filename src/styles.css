@@ -466,6 +466,31 @@ textarea::placeholder {
   border-radius: 99px;
   font-size: 11px;
 }
+.home-topbar {
+  display: flex;
+  justify-content: center;
+}
+.help-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.help-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.help-section h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: var(--accent, var(--ink));
+}
+.help-section p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
 .hidden {
   display: none !important;
 }
