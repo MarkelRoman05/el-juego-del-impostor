@@ -211,13 +211,26 @@ textarea::placeholder {
   border-color: var(--violet);
   box-shadow: 0 0 0 3px #8b72ff22;
 }
+.code-slot::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 10px;
+  width: 56%;
+  height: 2px;
+  background: var(--line);
+}
+.code-slot:not(:empty)::before {
+  display: none;
+}
 .code-slot--active::after {
   content: "";
   position: absolute;
   width: 2px;
-  height: 26px;
+  height: 27px;
   border-radius: 2px;
-  background: var(--violet);
+  background: var(--ink);
   animation: code-caret 1s steps(1, end) infinite;
 }
 .code-slot--active:empty::after {
