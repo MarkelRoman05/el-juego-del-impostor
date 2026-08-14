@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal, DestroyRef 
 import { Router, RouterOutlet, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
 import { GameService } from "./game.service";
+import { ConfirmService } from "./confirm/confirm.service";
+import { ConfirmComponent } from "./confirm/confirm.component";
 import { HomeComponent } from "./home/home.component";
 import { LobbyComponent } from "./lobby/lobby.component";
 import { RoundComponent } from "./round/round.component";
@@ -14,6 +16,7 @@ import { IconComponent } from "./icon/icon.component";
   standalone: true,
   imports: [
     RouterOutlet,
+    ConfirmComponent,
     HomeComponent,
     LobbyComponent,
     RoundComponent,
@@ -29,6 +32,7 @@ export class AppComponent implements OnInit {
   readonly game = inject(GameService);
   readonly router = inject(Router);
   readonly destroyRef = inject(DestroyRef);
+  readonly confirm = inject(ConfirmService);
   readonly isAdmin = signal(false);
 
   ngOnInit(): void {
@@ -43,12 +47,12 @@ export class AppComponent implements OnInit {
     this.isAdmin.set(url.startsWith("/admin") || url.startsWith("#/admin"));
   }
 
-  leaveGame(): void {
+  async leaveGame(): Promise<void> {
     const isHost = this.game.me() === this.game.room()?.hostId;
     const message = isHost
       ? "¿Finalizar la partida para todos?"
       : "¿Salir de la partida?";
-    if (!window.confirm(message)) return;
+    if (!(await this.confirm.ask(message))) return;
     if (isHost) this.game.endGame();
     else this.game.leaveRound();
   }

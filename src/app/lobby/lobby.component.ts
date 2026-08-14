@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RoomConfig } from "../game.models";
 import { GameService } from "../game.service";
+import { ConfirmService } from "../confirm/confirm.service";
 import { IconComponent } from "../icon/icon.component";
 
 @Component({
@@ -14,6 +15,7 @@ import { IconComponent } from "../icon/icon.component";
 })
 export class LobbyComponent implements OnInit {
   readonly game = inject(GameService);
+  readonly confirm = inject(ConfirmService);
   readonly categories = signal<Array<[string, string]>>([]);
   readonly loadingCategories = signal(true);
   readonly selectedWord = signal("");
@@ -99,6 +101,11 @@ export class LobbyComponent implements OnInit {
       this.setConfig("category", "mezcla");
     } else {
       this.setConfig("category", "");
+    }
+  }
+  async leave(): Promise<void> {
+    if (await this.confirm.ask("¿Seguro que quieres salir de la sala?")) {
+      this.game.leave();
     }
   }
 }

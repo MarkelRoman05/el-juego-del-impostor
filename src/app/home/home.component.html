@@ -8,9 +8,23 @@
       placeholder="Escribe un nombre..." autocomplete="off" (keydown.enter)="create()">
     <button class="btn primary big play-create-btn" (click)="create()"><impostor-icon name="game" /> Crear partida</button>
     <div class="divider"><span>o únete con un código</span></div>
-    <div class="join-row"><input class="code-input" [ngModel]="code" (ngModelChange)="setCode($event)" maxlength="4"
-        placeholder="CÓDIGO" aria-label="Código de partida" autocomplete="off" (keydown.enter)="join()"><button
-        class="btn secondary" (click)="join()">Unirse</button></div>
+    <div class="join-block">
+      <label for="code" class="code-label">Código de sala</label>
+      <div class="join-row">
+        <div class="code-field">
+          <div class="code-slots">
+            @for (i of [0, 1, 2, 3]; track i) {
+              <span class="code-slot" [class.code-slot--active]="codeFocused() && i === (code.length < 4 ? code.length : 3)">{{ code[i] || "" }}</span>
+            }
+          </div>
+          <input #codeInput class="code-input" id="code" [ngModel]="code"
+            (ngModelChange)="setCode($event)" maxlength="4"
+            (focus)="codeFocused.set(true)" (blur)="codeFocused.set(false)"
+            aria-label="Código de sala" autocomplete="off" (keydown.enter)="join()">
+        </div>
+        <button class="btn secondary" (click)="join()">Unirse</button>
+      </div>
+    </div>
   </div>
   <p class="hint footer-note">3+ jugadores · Sin registro</p>
   @if (showInstall()) {

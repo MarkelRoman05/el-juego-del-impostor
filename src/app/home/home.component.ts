@@ -16,6 +16,7 @@ export class HomeComponent {
   readonly destroyRef = inject(DestroyRef);
   name = this.game.name();
   code = new URLSearchParams(location.search).get("c")?.toUpperCase() ?? "";
+  readonly codeFocused = signal(false);
 
   readonly showInstall = signal(false);
   private installPrompt: InstallPromptEvent | null = null;

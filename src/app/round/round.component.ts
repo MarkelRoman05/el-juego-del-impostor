@@ -7,6 +7,7 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { GameService } from "../game.service";
+import { ConfirmService } from "../confirm/confirm.service";
 import { IconComponent } from "../icon/icon.component";
 
 @Component({
@@ -18,6 +19,7 @@ import { IconComponent } from "../icon/icon.component";
 })
 export class RoundComponent {
   readonly game = inject(GameService);
+  readonly confirm = inject(ConfirmService);
   readonly revealed = signal(false);
   isHost(): boolean {
     return this.game.me() === this.game.room()?.hostId;
@@ -33,8 +35,8 @@ export class RoundComponent {
   holdEnd(): void {
     this.revealed.set(false);
   }
-  finishGame(): void {
-    if (window.confirm("¿Confirmar que ha dicho la palabra correcta?")) {
+  async finishGame(): Promise<void> {
+    if (await this.confirm.ask("¿Confirmar que quieres finalizar la sesión?")) {
       this.game.markImpostor();
     }
   }

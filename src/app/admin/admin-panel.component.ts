@@ -3,6 +3,7 @@ import { Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { CommonModule } from "@angular/common";
 import { AdminService } from "./admin.service";
+import { ConfirmService } from "../confirm/confirm.service";
 import { IconComponent } from "../icon/icon.component";
 
 @Component({
@@ -352,6 +353,7 @@ import { IconComponent } from "../icon/icon.component";
 })
 export class AdminPanelComponent implements OnInit {
   readonly admin = inject(AdminService);
+  readonly confirm = inject(ConfirmService);
   readonly router = inject(Router);
   readonly activeTab = signal<"categories" | "rooms">("categories");
   readonly editingCategory = signal<string | null>(null);
@@ -387,7 +389,7 @@ export class AdminPanelComponent implements OnInit {
   }
 
   async deleteRoom(code: string): Promise<void> {
-    if (confirm(`¿Cerrar la sala ${code}?`)) {
+    if (await this.confirm.ask(`¿Cerrar la sala ${code}?`)) {
       await this.admin.deleteRoom(code);
     }
   }
@@ -477,7 +479,7 @@ async saveEditingCategory(): Promise<void> {
   async removeCategory(key: string): Promise<void> {
     const cat = this.admin.categories()[key];
     if (!cat) return;
-    if (confirm(`¿Eliminar la categoría "${cat.label}"?`)) {
+    if (await this.confirm.ask(`¿Eliminar la categoría "${cat.label}"?`)) {
       await this.admin.deleteCategory(key);
     }
   }

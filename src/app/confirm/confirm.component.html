@@ -1,0 +1,26 @@
+@if (confirm.dialog(); as dialog) {
+<div
+  class="confirm-backdrop"
+  [class.show]="confirm.show()"
+  (click)="confirm.cancel()"
+>
+  <div
+    class="confirm-sheet"
+    [class.show]="confirm.show()"
+    (click)="$event.stopPropagation()"
+    (transitionend)="confirm.closed()"
+    role="alertdialog"
+    aria-modal="true"
+  >
+    <p class="confirm-message">{{ dialog.message }}</p>
+    <div class="confirm-actions">
+      <button class="btn ghost" type="button" (click)="confirm.cancel()">
+        Cancelar
+      </button>
+      <button class="btn primary" type="button" (click)="confirm.confirm()">
+        Aceptar
+      </button>
+    </div>
+  </div>
+</div>
+}

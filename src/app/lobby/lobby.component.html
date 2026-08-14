@@ -1,14 +1,14 @@
 <section class="view active">
     <div class="card lobby-card">
         <div class="code-box">
-            <p class="eyebrow">CÓDIGO DE PARTIDA</p>
+            <p class="eyebrow">CÓDIGO DE SALA</p>
             <div class="code">
                 <button class="copy-icon" (click)="game.copyCode()"
                     [attr.aria-label]="'Copiar el código ' + game.room()?.code"><impostor-icon
                         name="clipboard" /></button>
                 <span class="code-value">{{ game.room()?.code }}</span>
                 <button class="copy-icon" (click)="game.shareLink()"
-                    aria-label="Compartir enlace de la partida"><impostor-icon name="share" /></button>
+                    aria-label="Compartir enlace de la sala"><impostor-icon name="share" /></button>
             </div>
         </div>
         <p class="players-label"><impostor-icon name="players" /> Jugadores
@@ -16,8 +16,9 @@
         <div class="players">@for (player of game.room()?.players; track player.id) {<span class="player-chip"
                 [class.me]="player.id === game.me()" [class.off]="!player.connected"><i class="dot"
                     [class.off]="!player.connected"></i>{{ player.name }} @if (player.id === game.room()?.hostId) {<b
-                        class="badge">HOST</b>} @if (player.waiting) {<b class="badge wait">ESPERA</b>} @if (isHost() && player.id !== game.me()) {<button class="kick"
-                    (click)="game.kick(player.id)" [attr.aria-label]="'Expulsar a ' + player.name">×</button>}</span>}
+                    class="badge">HOST</b>} @if (player.waiting) {<b class="badge wait">ESPERA</b>} @if (isHost() &&
+                player.id !== game.me()) {<button class="kick" (click)="game.kick(player.id)"
+                    [attr.aria-label]="'Expulsar a ' + player.name">×</button>}</span>}
         </div>
         <div class="config">
             <div class="config-row"><span><impostor-icon name="detective" /> Impostores</span>
@@ -74,7 +75,7 @@
         }
         <p class="hint">@if (!isHost()) { Esperando al host... } @else if (connectedPlayers() < 3) { Hacen falta al
                 menos 3 jugadores para empezar } @else { {{ connectedPlayers() }} jugadores listos }</p> <button
-                    class="btn ghost" (click)="game.leave()"><impostor-icon name="logout" /> Salir de la
-                    partida</button>
+                    class="btn ghost" (click)="leave()"><impostor-icon name="logout" /> Salir de la
+                    sala</button>
     </div>
 </section>
