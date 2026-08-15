@@ -103,6 +103,11 @@ export class LobbyComponent implements OnInit {
       this.setConfig("category", "");
     }
   }
+  async kick(id: string, name: string): Promise<void> {
+    if (await this.confirm.ask(`¿Expulsar a '${name}' de la sala?`)) {
+      this.game.kick(id);
+    }
+  }
   async leave(): Promise<void> {
     if (await this.confirm.ask("¿Seguro que quieres salir de la sala?")) {
       this.game.leave();
