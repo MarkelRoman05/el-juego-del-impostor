@@ -69,55 +69,105 @@ import { IconComponent } from "../icon/icon.component";
                 placeholder="Nombre de la categoría"
                 [disabled]="admin.loading()"
               />
-              <label class="field-label">Palabras</label>
-              <div class="word-list" aria-label="Palabras de la categoría">
-                @for (word of editWords; track $index) {
-                  <div class="word-row">
-                    <input
-                      type="text"
-                      [ngModel]="word"
-                      (ngModelChange)="changeWord($index, $event)"
-                      [disabled]="admin.loading()"
-                      [attr.aria-label]="'Palabra ' + ($index + 1)"
-                    />
-                    <input
-                      type="text"
-                      [ngModel]="editPistas[$index] || ''"
-                      (ngModelChange)="editPistas[$index] = $event"
-                      [disabled]="admin.loading()"
-                      placeholder="Pista"
-                      [attr.aria-label]="'Pista de ' + word"
-                    />
-                    <button
-                      type="button"
-                      class="btn danger small word-delete"
-                      (click)="removeWord($index)"
-                      [disabled]="admin.loading()"
-                      [attr.aria-label]="'Borrar ' + word"
-                    >
-                      Borrar
-                    </button>
-                  </div>
-                }
+              <div class="field-label-row">
+                <label class="field-label">Palabras</label>
+                <div class="edit-mode-toggle">
+                  <button
+                    type="button"
+                    class="mode-btn"
+                    [class.active]="editMode() === 'individual'"
+                    (click)="setEditMode('individual')"
+                  >
+                    Una a una
+                  </button>
+                  <button
+                    type="button"
+                    class="mode-btn"
+                    [class.active]="editMode() === 'bulk'"
+                    (click)="setEditMode('bulk')"
+                  >
+                    Lista
+                  </button>
+                </div>
               </div>
-              <div class="add-word">
-                <input
-                  type="text"
-                  [(ngModel)]="newWord"
-                  (ngModelChange)="wordError.set(null)"
-                  (keyup.enter)="addWord()"
-                  placeholder="Añadir palabra"
+              @if (editMode() === "individual") {
+                <div class="word-list" aria-label="Palabras de la categoría">
+                  @for (word of editWords; track $index) {
+                    <div class="word-card">
+                      <div class="word-card-head">
+                        <span class="word-index"
+                          >Palabra {{ $index + 1 }}</span
+                        >
+                        <button
+                          type="button"
+                          class="btn danger small word-delete"
+                          (click)="removeWord($index)"
+                          [disabled]="admin.loading()"
+                          [attr.aria-label]="'Borrar ' + word"
+                        >
+                          Borrar
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        class="word-input"
+                        [ngModel]="word"
+                        (ngModelChange)="changeWord($index, $event)"
+                        [disabled]="admin.loading()"
+                        [attr.aria-label]="'Palabra ' + ($index + 1)"
+                      />
+                      <input
+                        type="text"
+                        class="pista-input"
+                        [ngModel]="editPistas[$index] || ''"
+                        (ngModelChange)="editPistas[$index] = $event"
+                        [disabled]="admin.loading()"
+                        placeholder="Pista"
+                        [attr.aria-label]="'Pista de ' + word"
+                      />
+                    </div>
+                  }
+                </div>
+                <div class="add-word">
+                  <input
+                    type="text"
+                    [(ngModel)]="newWord"
+                    (ngModelChange)="wordError.set(null)"
+                    (keyup.enter)="addWord()"
+                    placeholder="Añadir palabra"
+                    [disabled]="admin.loading()"
+                  />
+                  <input
+                    type="text"
+                    [(ngModel)]="newPista"
+                    (keyup.enter)="addWord()"
+                    placeholder="Pista"
+                    [disabled]="admin.loading()"
+                  />
+                  <button
+                    type="button"
+                    class="btn small"
+                    (click)="addWord()"
+                    [disabled]="admin.loading() || !newWord.trim()"
+                  >
+                    Añadir
+                  </button>
+                </div>
+              } @else {
+                <textarea
+                  class="bulk-words"
+                  [ngModel]="bulkText()"
+                  (ngModelChange)="applyBulk($event)"
                   [disabled]="admin.loading()"
-                />
-                <button
-                  type="button"
-                  class="btn small"
-                  (click)="addWord()"
-                  [disabled]="admin.loading() || !newWord.trim()"
-                >
-                  Añadir
-                </button>
-              </div>
+                  rows="10"
+                  placeholder="Escribe las palabras separadas por comas"
+                  aria-label="Lista de palabras separadas por comas"
+                ></textarea>
+                <p class="hint bulk-hint">
+                  Separa cada palabra con una coma. Las pistas se reinician al
+                  usar este modo.
+                </p>
+              }
               @if (wordError()) {
                 <p class="error-msg">{{ wordError() }}</p>
               } @else if (hasDuplicateWords(editWords)) {
@@ -306,20 +356,35 @@ import { IconComponent } from "../icon/icon.component";
       .word-list {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
         max-height: 360px;
         overflow-y: auto;
         padding: 2px 10px 2px 2px;
         scrollbar-gutter: stable;
       }
-      .word-row {
+      .word-card {
         display: flex;
-        gap: 8px;
-        align-items: center;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px;
+        background: #11131b;
+        border: 1px solid var(--line);
+        border-radius: 10px;
       }
-      .word-row input {
-        min-width: 0;
-        flex: 1;
+      .word-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .word-index {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .word-input,
+      .pista-input {
+        width: 100%;
+        box-sizing: border-box;
       }
       .word-delete {
         flex: 0 0 auto;
@@ -394,6 +459,58 @@ import { IconComponent } from "../icon/icon.component";
         margin: 8px 0 4px;
         font-weight: 600;
       }
+      .field-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 8px 0 4px;
+      }
+      .field-label-row .field-label {
+        margin: 0;
+      }
+      .edit-mode-toggle {
+        display: flex;
+        gap: 4px;
+        background: var(--panel);
+        padding: 3px;
+        border-radius: 9px;
+        border: 1px solid var(--line);
+      }
+      .mode-btn {
+        padding: 6px 12px;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.2s;
+      }
+      .mode-btn:hover {
+        color: var(--ink);
+      }
+      .mode-btn.active {
+        color: var(--ink);
+        background: var(--line);
+      }
+      .bulk-words {
+        width: 100%;
+        box-sizing: border-box;
+        resize: vertical;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #11131b;
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 1.5;
+        font-family: inherit;
+      }
+      .bulk-hint {
+        margin: 8px 0 0;
+        text-align: left;
+      }
     `,
   ],
 })
@@ -403,12 +520,15 @@ export class AdminPanelComponent implements OnInit {
   readonly router = inject(Router);
   readonly activeTab = signal<"categories" | "rooms">("categories");
   readonly editingCategory = signal<string | null>(null);
+  readonly editMode = signal<"individual" | "bulk">("individual");
   readonly wordError = signal<string | null>(null);
+  readonly bulkText = signal("");
 
   editLabel = "";
   editWords: string[] = [];
   editPistas: string[] = [];
   newWord = "";
+  newPista = "";
   private editKey = "";
 
   async ngOnInit(): Promise<void> {
@@ -470,7 +590,10 @@ export class AdminPanelComponent implements OnInit {
     this.editWords = [];
     this.editPistas = [];
     this.newWord = "";
+    this.newPista = "";
     this.wordError.set(null);
+    this.editMode.set("individual");
+    this.bulkText.set("");
     this.editingCategory.set("__new__");
   }
 
@@ -482,8 +605,30 @@ export class AdminPanelComponent implements OnInit {
     this.editWords = [...cat.words];
     this.editPistas = [...(cat.pistas || [])];
     this.newWord = "";
+    this.newPista = "";
     this.wordError.set(null);
+    this.editMode.set("individual");
+    this.bulkText.set("");
     this.editingCategory.set(key);
+  }
+
+  setEditMode(mode: "individual" | "bulk"): void {
+    if (mode === this.editMode()) return;
+    if (mode === "bulk") {
+      this.bulkText.set(this.editWords.join(", "));
+    }
+    this.editMode.set(mode);
+  }
+
+  applyBulk(text: string): void {
+    this.bulkText.set(text);
+    this.wordError.set(null);
+    const words = text
+      .split(",")
+      .map((word) => word.trim())
+      .filter((word) => word.length > 0);
+    this.editWords = words;
+    this.editPistas = words.map((_, index) => this.editPistas[index] || "");
   }
 
   addWord(): void {
@@ -495,7 +640,9 @@ export class AdminPanelComponent implements OnInit {
     }
     this.wordError.set(null);
     this.editWords = [...this.editWords, word];
+    this.editPistas = [...this.editPistas, this.newPista.trim()];
     this.newWord = "";
+    this.newPista = "";
   }
 
   changeWord(index: number, value: string): void {

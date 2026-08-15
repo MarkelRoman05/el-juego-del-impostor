@@ -487,6 +487,21 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.help-modal::-webkit-scrollbar {
+  width: 8px;
+}
+.help-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.help-modal::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 99px;
+}
+.help-modal::-webkit-scrollbar-thumb:hover {
+  background: var(--violet);
 }
 .help-body {
   display: flex;
