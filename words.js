@@ -143,7 +143,7 @@ const PISTAS = {
     'reloj': 'Indica la hora, pueden ser de pulsera o de pared',
     'auriculares': 'Para escuchar música o hablar por teléfono',
   },
-  tecnología: {
+  tecnologia: {
     'teléfono móvil': 'Dispositivo para comunicarse sin cables',
     'ordenador portátil': 'Portátil, también llamado laptop',
     'impresora': 'Imprime documentos en papel',

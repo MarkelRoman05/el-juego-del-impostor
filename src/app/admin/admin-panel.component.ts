@@ -672,12 +672,14 @@ export class AdminPanelComponent implements OnInit {
   }
 
   async saveEditingCategory(): Promise<void> {
-    const words = this.editWords
-      .map((word) => word.trim())
-      .filter((word) => word.length >= 2 && word.length <= 40);
-    const pistas = this.editPistas
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
+    const kept = this.editWords
+      .map((word, index) => ({
+        word: word.trim(),
+        pista: (this.editPistas[index] ?? "").trim(),
+      }))
+      .filter((entry) => entry.word.length >= 2 && entry.word.length <= 40);
+    const words = kept.map((entry) => entry.word);
+    const pistas = kept.map((entry) => entry.pista);
     if (
       !this.editLabel.trim() ||
       !words.length ||

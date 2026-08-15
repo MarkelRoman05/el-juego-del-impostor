@@ -118,7 +118,6 @@ app.post('/api/admin/categories', adminAuth, (req, res) => {
   const cleanKey = sanitizeCategoryKey(key);
   if (!cleanKey) return res.status(400).json({ error: 'Clave de categoría inválida' });
   if (CATEGORIES[cleanKey]) return res.status(400).json({ error: 'Esa categoría ya existe como built-in' });
-  if (adminConfig.customCategories) adminConfig.customCategories[cleanKey] = {};
   if (adminConfig.customCategories[cleanKey]) return res.status(400).json({ error: 'Esa categoría personalizada ya existe' });
   const cleanLabel = typeof label === 'string' ? label.trim().slice(0, 30) : '';
   if (!cleanLabel) return res.status(400).json({ error: 'El nombre es obligatorio' });
@@ -524,11 +523,23 @@ function startRound(room) {
   room.startedAt = Date.now();
 
   const getPista = (word) => {
-    const categoria = categoryLabelForWord(room, word);
-    if (!categoria) return '';
-    const pistaObj = PISTAS[categoria];
-    if (!pistaObj) return '';
-    return pistaObj[word] || '';
+    const key = categoryKeys(room.config.category).find((k) => {
+      if (k === 'personalizadas' || k === 'mezcla') return false;
+      const custom = adminConfig.customCategories?.[k];
+      const words = custom?.words || adminConfig.categoryOverrides?.[k]?.words || CATEGORIES[k]?.words || [];
+      return words.includes(word);
+    });
+    if (!key) return '';
+    const custom = adminConfig.customCategories?.[key];
+    const override = adminConfig.categoryOverrides?.[key];
+    const catWords = custom?.words || override?.words || CATEGORIES[key]?.words || [];
+    const catPistas = custom?.pistas || override?.pistas;
+    if (Array.isArray(catPistas)) {
+      const idx = catWords.indexOf(word);
+      if (idx >= 0 && catPistas[idx]) return catPistas[idx];
+    }
+    const pistaObj = PISTAS[key];
+    return (pistaObj && pistaObj[word]) || '';
   };
 
   for (const p of connected) {
