@@ -778,9 +778,11 @@ io.on('connection', (socket) => {
 
     // Nuevos jugadores: entran siempre entre rondas; con una ronda en curso se quedan
     // esperando (no juegan esa ronda) y con el reveal ya abierto ven directamente el resultado.
-    // Sala huérfana con la ronda a medias (sin host): nadie puede terminarla, así que
-    // se reabre el lobby y el recién llegado toma el mando.
-    if (!room.hostId && room.phase !== 'lobby') resetToLobby(room);
+    // Sala huérfana con la ronda a medias: solo se reabre el lobby si el anfitrión
+    // original ya no es miembro de la sala (abandono real). Si sigue siendo miembro
+    // aunque esté desconectado (móviles apagados), la ronda se conserva para que
+    // pueda reconectar y terminarla; un nuevo jugador se suma como "esperando".
+    if (!room.hostId && room.phase !== 'lobby' && !room.players.has(room.originalHostId)) resetToLobby(room);
     const joiningMidRound = room.phase === 'round';
     if (!joiningMidRound && room.phase !== 'lobby' && room.phase !== 'gameover') {
       return ackErr(ack, 'La partida ya no admite jugadores');
