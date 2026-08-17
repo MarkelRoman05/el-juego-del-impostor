@@ -363,7 +363,11 @@ export class GameService {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
   private clearSession(): void {
-    localStorage.removeItem(SESSION_KEY);
+    const session = this.loadSession();
+    delete session.code;
+    delete session.playerId;
+    delete session.reconnectToken;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
   private reset(): void {
     this.phase.set("home");

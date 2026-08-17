@@ -928,8 +928,7 @@ io.on('connection', (socket) => {
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede empezar');
     if (room.phase !== 'lobby') return ackErr(ack, 'Ya hay una ronda en curso');
     const connected = [...room.players.values()].filter((p) => p.connected && isPlayingPlayer(room, p.id) && !room.eliminatedIds.has(p.id));
-    if (room.startedAt === 0 && connected.length < MIN_PLAYERS) return ackErr(ack, `Se necesitan al menos ${MIN_PLAYERS} jugadores`);
-    if (connected.length < 2) return ackErr(ack, 'No quedan suficientes jugadores activos');
+    if (connected.length < MIN_PLAYERS) return ackErr(ack, `Se necesitan al menos ${MIN_PLAYERS} jugadores`);
     if (!String(room.config.category || '').trim() && !parseCustomWords(room.config.customWords).length) {
       return ackErr(ack, 'Selecciona al menos una categoría o escribe una palabra');
     }
