@@ -13,6 +13,7 @@ export type IconName =
   | "play"
   | "lock"
   | "share"
+  | "minus"
   | "hourglass"
   | "theater"
   | "check"
@@ -23,7 +24,9 @@ export type IconName =
   | "logout"
   | "question"
   | "tick"
-  | "cross";
+  | "cross"
+  | "more"
+  | "flag";
 
 @Component({
   selector: "impostor-icon",
@@ -124,6 +127,9 @@ export type IconName =
         @case ("plus") {
           <path d="M12 5v14M5 12h14" />
         }
+        @case ("minus") {
+          <path d="M5 12h14" />
+        }
         @case ("download") {
           <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
         }
@@ -134,6 +140,14 @@ export type IconName =
           <circle cx="12" cy="12" r="9" />
           <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.9.6-1.5 1.3-1.5 2.2" />
           <circle cx="12" cy="16.5" r="0.7" fill="currentColor" />
+        }
+        @case ("more") {
+          <circle cx="12" cy="5" r="1.6" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="19" r="1.6" fill="currentColor" stroke="none" />
+        }
+        @case ("flag") {
+          <path d="M6 21V4M6 4h11l-2 3 2 3H6" />
         }
       }
     </svg>

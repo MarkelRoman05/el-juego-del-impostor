@@ -13,7 +13,8 @@
   }
   @if (game.room() && game.phase() !== 'lobby') {
   <button class="persistent-exit" (click)="leaveGame()">
-    {{ game.me() === game.room()?.hostId ? 'Finalizar partida' : 'Salir de la partida' }}
+    <impostor-icon style="margin-right: 3px;" name="logout" />
+    {{ game.me() === game.room()?.hostId ? 'Finalizar partida' : 'Salir de la sala' }}
   </button>
   }
 </main>
@@ -22,5 +23,6 @@
   <div class="big-emoji"><impostor-icon name="plug" /></div>
   <p>Reconectando…</p>
 </div> }
+<impostor-more-menu />
 <impostor-confirm />
 }

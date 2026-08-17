@@ -8,6 +8,7 @@ import {
 import { CommonModule } from "@angular/common";
 import { GameService } from "../game.service";
 import { ConfirmService } from "../confirm/confirm.service";
+import { MoreMenuService } from "../more-menu/more-menu.service";
 import { IconComponent } from "../icon/icon.component";
 
 @Component({
@@ -20,6 +21,7 @@ import { IconComponent } from "../icon/icon.component";
 export class RoundComponent {
   readonly game = inject(GameService);
   readonly confirm = inject(ConfirmService);
+  readonly menu = inject(MoreMenuService);
   readonly revealed = signal(false);
   isHost(): boolean {
     return this.game.me() === this.game.room()?.hostId;
@@ -40,6 +42,11 @@ export class RoundComponent {
       this.game.markImpostor();
     }
   }
+
+  openMenu(player: { id: string; name: string }): void {
+    this.menu.show(player);
+  }
+
   @HostListener("window:pointerup") onPointerUp(): void {
     this.holdEnd();
   }

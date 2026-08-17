@@ -4,6 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { RoomConfig } from "../game.models";
 import { GameService } from "../game.service";
 import { ConfirmService } from "../confirm/confirm.service";
+import { MoreMenuService } from "../more-menu/more-menu.service";
 import { IconComponent } from "../icon/icon.component";
 
 @Component({
@@ -16,6 +17,7 @@ import { IconComponent } from "../icon/icon.component";
 export class LobbyComponent implements OnInit {
   readonly game = inject(GameService);
   readonly confirm = inject(ConfirmService);
+  readonly menu = inject(MoreMenuService);
   readonly categories = signal<Array<[string, string]>>([]);
   readonly loadingCategories = signal(true);
   readonly selectedWord = signal("");
@@ -103,10 +105,8 @@ export class LobbyComponent implements OnInit {
       this.setConfig("category", "");
     }
   }
-  async kick(id: string, name: string): Promise<void> {
-    if (await this.confirm.ask(`¿Expulsar a '${name}' de la sala?`)) {
-      this.game.kick(id);
-    }
+  openMenu(player: { id: string; name: string }): void {
+    this.menu.show(player);
   }
   async leave(): Promise<void> {
     if (await this.confirm.ask("¿Seguro que quieres salir de la sala?")) {

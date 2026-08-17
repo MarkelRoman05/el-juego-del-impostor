@@ -114,7 +114,7 @@ export class GameService {
     this.socket.on("kicked", () => {
       this.clearSession();
       this.reset();
-      this.notify("Te han expulsado de la partida");
+      this.notify("Te han expulsado de la sala");
     });
     this.socket.on("session:replaced", () => {
       this.cancelRejoin();
@@ -130,6 +130,9 @@ export class GameService {
       this.clearSession();
       this.reset();
       this.notify("La partida ha terminado");
+    });
+    this.socket.on("host:changed", ({ name }: { name: string }) => {
+      this.notify(`${name} es ahora el host de la sala`);
     });
     window.addEventListener("online", this.recoverConnection);
     window.addEventListener("pageshow", this.recoverConnection);
@@ -191,6 +194,11 @@ export class GameService {
   kick(playerId: string): void {
     this.socket.emit("lobby:kick", { playerId });
   }
+  setHost(playerId: string): void {
+    this.socket.emit("lobby:setHost", { playerId }, (res: Ack) => {
+      if (res?.error) this.notify(res.error);
+    });
+  }
   leave(): void {
     this.socket.emit("lobby:leave");
     this.clearSession();
@@ -249,7 +257,7 @@ export class GameService {
     for (const [name, player] of currentPlayers) {
       const oldPlayer = previousPlayers.get(name);
       if (!oldPlayer) {
-        this.notify(`${name} se ha unido a la partida`);
+        this.notify(`${name} se ha unido a la sala`);
       } else if (!oldPlayer.connected && player.connected) {
         this.notify(`${name} se ha reconectado`);
       }
@@ -257,7 +265,7 @@ export class GameService {
     for (const [name, player] of previousPlayers) {
       const currentPlayer = currentPlayers.get(name);
       if (player.connected && (!currentPlayer || !currentPlayer.connected)) {
-        this.notify(`${name} ha dejado la partida`);
+        this.notify(`${name} ha dejado la sala`);
       }
     }
   }

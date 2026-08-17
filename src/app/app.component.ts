@@ -4,6 +4,7 @@ import { filter } from "rxjs/operators";
 import { GameService } from "./game.service";
 import { ConfirmService } from "./confirm/confirm.service";
 import { ConfirmComponent } from "./confirm/confirm.component";
+import { MoreMenuComponent } from "./more-menu/more-menu.component";
 import { HomeComponent } from "./home/home.component";
 import { LobbyComponent } from "./lobby/lobby.component";
 import { RoundComponent } from "./round/round.component";
@@ -23,6 +24,7 @@ import { IconComponent } from "./icon/icon.component";
     RevealComponent,
     WaitingComponent,
     IconComponent,
+    MoreMenuComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrl: "../styles.css",
@@ -50,8 +52,8 @@ export class AppComponent implements OnInit {
   async leaveGame(): Promise<void> {
     const isHost = this.game.me() === this.game.room()?.hostId;
     const message = isHost
-      ? "¿Finalizar la partida para todos?"
-      : "¿Salir de la partida?";
+      ? "¿Finalizar la partida para todos y volver al menú?"
+      : "¿Seguro que quieres salir de la sala?";
     if (!(await this.confirm.ask(message))) return;
     if (isHost) this.game.endGame();
     else this.game.leaveRound();

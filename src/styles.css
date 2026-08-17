@@ -38,11 +38,17 @@ textarea {
 button {
   cursor: pointer;
 }
+impostor-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
 .icon {
   width: 1.15em;
   height: 1.15em;
-  display: inline-block;
-  vertical-align: -0.2em;
+  display: block;
+  vertical-align: middle;
   flex: none;
 }
 .logo .icon {
@@ -411,12 +417,12 @@ textarea::placeholder {
 .modal-heading {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
 }
 .modal-heading h2 {
   text-align: left;
-  margin-top: 7px;
+  margin: 0;
   font-size: 24px;
 }
 .modal-close {
@@ -425,6 +431,13 @@ textarea::placeholder {
   background: transparent;
   font-size: 28px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-close .icon {
+  width: 22px;
+  height: 22px;
 }
 .add-word {
   display: flex;
@@ -694,12 +707,18 @@ textarea::placeholder {
   background: var(--yellow);
   color: var(--bg);
 }
-.kick {
+.more {
   color: var(--muted);
   border: 0;
   background: transparent;
   padding: 0 2px;
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.more .icon {
+  width: 15px;
+  height: 15px;
 }
 .config {
   display: flex;
@@ -806,10 +825,17 @@ textarea::placeholder {
   color: var(--ink);
   background: #11131b;
   font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .stepper b {
   min-width: 20px;
   text-align: center;
+}
+.stepper button .icon {
+  width: 18px;
+  height: 18px;
 }
 .switch {
   width: 48px;

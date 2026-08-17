@@ -908,6 +908,19 @@ io.on('connection', (socket) => {
     ackOk(ack);
   });
 
+  socket.on('lobby:setHost', ({ playerId } = {}, ack) => {
+    const room = getRoomOf(socket);
+    if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede cambiar de anfitrión');
+    if (!playerId || !room.players.has(playerId)) return ackErr(ack, 'Jugador no encontrado');
+    if (playerId === room.hostId) return ackOk(ack);
+    room.hostId = playerId;
+    room.originalHostId = playerId;
+    room.lastActivity = Date.now();
+    broadcastLobby(room);
+    io.to(room.code).emit('host:changed', { name: room.players.get(playerId)?.name ?? '' });
+    ackOk(ack);
+  });
+
   /* ---- ronda ---- */
 
   socket.on('round:start', (ack) => {

@@ -17,17 +17,19 @@
                 [class.me]="player.id === game.me()" [class.off]="!player.connected"><i class="dot"
                     [class.off]="!player.connected"></i>{{ player.name }} @if (player.id === game.room()?.hostId) {<b
                     class="badge">HOST</b>} @if (player.waiting) {<b class="badge wait">ESPERA</b>} @if (isHost() &&
-                player.id !== game.me()) {<button class="kick" (click)="kick(player.id, player.name)"
-                    [attr.aria-label]="'Expulsar a ' + player.name">×</button>}</span>}
+                player.id !== game.me()) {<button class="more" (click)="openMenu(player)" [attr.aria-label]="'Opciones de ' + player.name"><impostor-icon name="more" /></button>}</span>}
         </div>
         <div class="config">
             <div class="config-row"><span><impostor-icon name="detective" /> Impostores</span>
-                <div class="stepper"><button aria-label="Reducir número de impostores"
-                        [disabled]="!isHost() || game.room()!.config.impostors <= 1"
-                        (click)="setConfig('impostors', game.room()!.config.impostors - 1)">−</button><b>{{
-                        game.room()?.config?.impostors }}</b><button aria-label="Aumentar número de impostores"
-                        [disabled]="!isHost() || game.room()!.config.impostors >= maxImpostors()"
-                        (click)="setConfig('impostors', game.room()!.config.impostors + 1)">+</button></div>
+                <div class="stepper">
+                    @if (isHost()) {<button aria-label="Reducir número de impostores"
+                        [disabled]="game.room()!.config.impostors <= 1"
+                        (click)="setConfig('impostors', game.room()!.config.impostors - 1)"><impostor-icon name="minus" /></button>}
+                    <b style="font-size: medium;">{{ game.room()?.config?.impostors }}</b>
+                    @if (isHost()) {<button aria-label="Aumentar número de impostores"
+                        [disabled]="game.room()!.config.impostors >= maxImpostors()"
+                        (click)="setConfig('impostors', game.room()!.config.impostors + 1)"><impostor-icon name="plus" /></button>}
+                </div>
             </div>
             <div class="category-config">
                 <div class="config-row"><span><impostor-icon name="books" /> Categorías</span>
@@ -35,7 +37,7 @@
                         isAllCategoriesSelected() ? 'Todas (' + categories().length + ') seleccionadas' :
                         selectedCategories().length + ' seleccionadas' }}</b>
                 </div>
-                @if (loadingCategories()) {<p class="loading">Cargando…</p>} @else {<label class="check-option"><input
+                @if (loadingCategories()) {<p class="loading">Cargando categorías…</p>} @else {<label class="check-option"><input
                         type="checkbox" [disabled]="!isHost()" [ngModel]="isAllCategoriesSelected()"
                         (ngModelChange)="setAllCategories($event)"><span>TODAS</span></label>
                 @for (category of categories(); track category[0]) {<label class="check-option"><input type="checkbox"
@@ -74,10 +76,12 @@
             Empezar partida</button>
         }
         <p class="hint">@if (!isHost()) { Esperando al host... } @else if (connectedPlayers() < 3) { Hacen falta al
-                menos 3 jugadores para empezar } @else if (!hasSelectedCategory() && isHost()) { Selecciona al menos una categoría para empezar... } @else { {{ connectedPlayers() }} jugadores listos }</p> <button
+                menos 3 jugadores para empezar } @else if (!hasSelectedCategory() && isHost()) { Selecciona al menos una
+                categoría para empezar... } @else { {{ connectedPlayers() }} jugadores listos }</p> <button
                     class="btn ghost" (click)="leave()"><impostor-icon name="logout" /> Salir de la
                     sala</button>
-        <div class="brand-bottom"><impostor-icon name="detective" />
-            <span class="impostor-bottom">El Impostor</span></div>
+                <div class="brand-bottom"><impostor-icon name="detective" />
+                    <span class="impostor-bottom">El Impostor</span>
+                </div>
     </div>
 </section>
