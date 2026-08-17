@@ -53,14 +53,21 @@
             <div class="lock"><impostor-icon name="lock" /></div>
             <div class="hold-text">Mantén pulsado<br>para ver la palabra</div>
         </div>
-        <div class="secret-content">@if (game.role()?.role === 'impostor') {
+        <div class="secret-content">
+        @if (game.role()?.role === 'impostor') {
             <div class="impostor-emoji"><impostor-icon name="detective" /></div>
             <div class="impostor-title">¡ERES EL IMPOSTOR!</div>
-            @if (game.role()?.category) {<div class="impostor-sub">Finge que la sabes. Tu pista:
-            </div>}
-            @if (game.role()?.pista) {<div class="impostor-sub">Pista: {{ game.role()?.pista }}</div>}
-            @if (!game.role()?.pista) {<div class="impostor-sub">Finge que la sabes. No tienes pista.</div>}
-            @if (game.role()?.category) {<div class="category-chip big">{{ game.role()?.category }}</div>}
+            @if (game.room()?.config?.impostorHint) {
+                @if (game.role()?.pista) {
+                    <div class="impostor-pista">Pista: {{ game.role()?.pista }}</div>
+                } @else {
+                    <div class="impostor-sub">No hay pista configurada</div>
+                    @if (game.role()?.category) {<div class="category-chip">Categoría: {{ game.role()?.category }}</div>}
+                }
+            }
+            @else {
+                <div class="impostor-sub">Finge que la sabes. No tienes pista.</div>
+            }
         } @else {<div class="word">{{ game.role()?.word }}</div>
             <div class="category-chip">Categoría: {{ game.role()?.category }}</div>}
         </div>

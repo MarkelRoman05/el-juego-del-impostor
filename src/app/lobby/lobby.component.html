@@ -37,7 +37,7 @@
                 </div>
                 @if (loadingCategories()) {<p class="loading">Cargando…</p>} @else {<label class="check-option"><input
                         type="checkbox" [disabled]="!isHost()" [ngModel]="isAllCategoriesSelected()"
-                        (ngModelChange)="setAllCategories($event)"><span>Todas</span></label>
+                        (ngModelChange)="setAllCategories($event)"><span>TODAS</span></label>
                 @for (category of categories(); track category[0]) {<label class="check-option"><input type="checkbox"
                         [disabled]="!isHost()" [ngModel]="isCategorySelected(category[0])"
                         (ngModelChange)="setCategory(category[0], $event)"><span>{{ category[1] }}</span></label>}}

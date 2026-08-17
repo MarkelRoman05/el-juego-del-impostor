@@ -497,6 +497,11 @@ function startRound(room) {
           if (customCats[key]) return customCats[key].label;
           return adminConfig.categoryOverrides?.[key]?.label || (CATEGORIES[key] ? CATEGORIES[key].label : key);
         }).join(' + ');
+  // La etiqueta del chip sólo debe mostrar la categoría real de la palabra,
+  // no todas las seleccionadas en el lobby.
+  const wordCategory = customWords.length
+    ? (room.config.hostPlays === false ? (categoryLabelForWord(room, word) || 'Palabra elegida por el host') : 'Palabras personalizadas')
+    : categoryLabelForWord(room, word) || categoryLabel;
 
   // Evita repetir impostores de la ronda anterior siempre que haya suficientes jugadores
   // alternativos; si no quedan, vuelve al pool completo.
@@ -544,8 +549,8 @@ function startRound(room) {
 
   for (const p of connected) {
     const payload = impostorIds.has(p.id)
-       ? { role: 'impostor', category: room.config.impostorHint ? categoryLabel : '', starter: starter.name, starterId: starter.id, pista: getPista(word) }
-       : { role: 'player', word, category: categoryLabel, starter: starter.name, starterId: starter.id, pista: getPista(word) };
+       ? { role: 'impostor', category: room.config.impostorHint ? wordCategory : '', starter: starter.name, starterId: starter.id, pista: room.config.impostorHint ? getPista(word) : '' }
+       : { role: 'player', word, category: wordCategory, starter: starter.name, starterId: starter.id, pista: getPista(word) };
     room.roleByPlayer.set(p.id, payload);
     const sock = io.sockets.sockets.get(p.id);
     if (sock) sock.emit('round:started', payload);
@@ -555,7 +560,7 @@ function startRound(room) {
     const payload = {
       role: 'player',
       word,
-      category: categoryLabel,
+      category: wordCategory,
       starter: starter.name,
       starterId: starter.id,
       impostors: [...impostorIds].map((id) => room.players.get(id)?.name || '?'),
