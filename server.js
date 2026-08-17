@@ -114,7 +114,7 @@ app.get('/api/admin/categories', adminAuth, (_req, res) => {
 });
 
 app.post('/api/admin/categories', adminAuth, (req, res) => {
-  const { key, label, words, pistas } = req.body || {};
+  const { key, label, words, pistas, infos } = req.body || {};
   const cleanKey = sanitizeCategoryKey(key);
   if (!cleanKey) return res.status(400).json({ error: 'Clave de categoría inválida' });
   if (CATEGORIES[cleanKey]) return res.status(400).json({ error: 'Esa categoría ya existe como built-in' });
@@ -123,7 +123,7 @@ app.post('/api/admin/categories', adminAuth, (req, res) => {
   if (!cleanLabel) return res.status(400).json({ error: 'El nombre es obligatorio' });
    const cleanWords = Array.isArray(words) ? cleanCategoryWords(words) : [];
   if (!cleanWords.length) return res.status(400).json({ error: 'Añade al menos una palabra' });
-  adminConfig.customCategories[cleanKey] = { label: cleanLabel, words: cleanWords, pistas: Array.isArray(pistas) ? pistas : [] };
+  adminConfig.customCategories[cleanKey] = { label: cleanLabel, words: cleanWords, pistas: Array.isArray(pistas) ? pistas : [], infos: Array.isArray(infos) ? infos : [] };
   saveAdminConfig(adminConfig);
   res.json({ ok: true, categories: getAdminCategories() });
 });
@@ -133,7 +133,7 @@ app.put('/api/admin/categories/:key', adminAuth, (req, res) => {
   const isBuiltIn = Boolean(CATEGORIES[key] && key !== 'mezcla');
   const isCustom = Boolean(adminConfig.customCategories?.[key]);
   if (!isBuiltIn && !isCustom) return res.status(404).json({ error: 'Categoría no encontrada' });
-  const { label, words, pistas } = req.body || {};
+  const { label, words, pistas, infos } = req.body || {};
   const category = isBuiltIn
     ? (adminConfig.categoryOverrides[key] ||= { label: CATEGORIES[key].label, words: [...CATEGORIES[key].words] })
     : adminConfig.customCategories[key];
@@ -147,6 +147,9 @@ app.put('/api/admin/categories/:key', adminAuth, (req, res) => {
   }
   if (Array.isArray(pistas)) {
     category.pistas = pistas;
+  }
+  if (Array.isArray(infos)) {
+    category.infos = infos;
   }
   saveAdminConfig(adminConfig);
   res.json({ ok: true, categories: getAdminCategories() });
@@ -240,11 +243,12 @@ function getAdminCategories() {
       label: override?.label || cat.label,
       words: cleanCategoryWords(override?.words || cat.words),
       pistas: override?.pistas || cat.pistas,
+      infos: override?.infos || cat.infos || [],
       custom: false,
     };
   }
   for (const [key, cat] of Object.entries(adminConfig.customCategories || {})) {
-     categories[key] = { label: cat.label, words: cleanCategoryWords(cat.words), pistas: cat.pistas, custom: true };
+     categories[key] = { label: cat.label, words: cleanCategoryWords(cat.words), pistas: cat.pistas, infos: cat.infos || [], custom: true };
   }
   return categories;
 }
@@ -547,10 +551,29 @@ function startRound(room) {
     return (pistaObj && pistaObj[word]) || '';
   };
 
+  const getInfo = (word) => {
+    const key = categoryKeys(room.config.category).find((k) => {
+      if (k === 'personalizadas' || k === 'mezcla') return false;
+      const custom = adminConfig.customCategories?.[k];
+      const words = custom?.words || adminConfig.categoryOverrides?.[k]?.words || CATEGORIES[k]?.words || [];
+      return words.includes(word);
+    });
+    if (!key) return '';
+    const custom = adminConfig.customCategories?.[key];
+    const override = adminConfig.categoryOverrides?.[key];
+    const catWords = custom?.words || override?.words || CATEGORIES[key]?.words || [];
+    const catInfos = custom?.infos || override?.infos;
+    if (Array.isArray(catInfos)) {
+      const idx = catWords.indexOf(word);
+      if (idx >= 0 && catInfos[idx]) return catInfos[idx];
+    }
+    return '';
+  };
+
   for (const p of connected) {
     const payload = impostorIds.has(p.id)
-       ? { role: 'impostor', category: room.config.impostorHint ? wordCategory : '', starter: starter.name, starterId: starter.id, pista: room.config.impostorHint ? getPista(word) : '' }
-       : { role: 'player', word, category: wordCategory, starter: starter.name, starterId: starter.id, pista: getPista(word) };
+       ? { role: 'impostor', category: room.config.impostorHint ? wordCategory : '', starter: starter.name, starterId: starter.id, pista: room.config.impostorHint ? getPista(word) : '', info: '' }
+       : { role: 'player', word, category: wordCategory, starter: starter.name, starterId: starter.id, pista: getPista(word), info: getInfo(word) };
     room.roleByPlayer.set(p.id, payload);
     const sock = io.sockets.sockets.get(p.id);
     if (sock) sock.emit('round:started', payload);
@@ -563,6 +586,7 @@ function startRound(room) {
       category: wordCategory,
       starter: starter.name,
       starterId: starter.id,
+      info: getInfo(word),
       impostors: [...impostorIds].map((id) => room.players.get(id)?.name || '?'),
     };
     room.roleByPlayer.set(host.id, payload);

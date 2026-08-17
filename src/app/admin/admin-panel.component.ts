@@ -125,6 +125,15 @@ import { IconComponent } from "../icon/icon.component";
                         placeholder="Pista"
                         [attr.aria-label]="'Pista de ' + word"
                       />
+                      <input
+                        type="text"
+                        class="info-input"
+                        [ngModel]="editInfos[$index] || ''"
+                        (ngModelChange)="editInfos[$index] = $event"
+                        [disabled]="admin.loading()"
+                        placeholder="Info extra"
+                        [attr.aria-label]="'Info extra de ' + word"
+                      />
                     </div>
                   }
                 </div>
@@ -142,6 +151,13 @@ import { IconComponent } from "../icon/icon.component";
                     [(ngModel)]="newPista"
                     (keyup.enter)="addWord()"
                     placeholder="Pista"
+                    [disabled]="admin.loading()"
+                  />
+                  <input
+                    type="text"
+                    [(ngModel)]="newInfo"
+                    (keyup.enter)="addWord()"
+                    placeholder="Info extra"
                     [disabled]="admin.loading()"
                   />
                   <button
@@ -382,7 +398,8 @@ import { IconComponent } from "../icon/icon.component";
         color: var(--muted);
       }
       .word-input,
-      .pista-input {
+      .pista-input,
+      .info-input {
         width: 100%;
         box-sizing: border-box;
       }
@@ -527,8 +544,10 @@ export class AdminPanelComponent implements OnInit {
   editLabel = "";
   editWords: string[] = [];
   editPistas: string[] = [];
+  editInfos: string[] = [];
   newWord = "";
   newPista = "";
+  newInfo = "";
   private editKey = "";
 
   async ngOnInit(): Promise<void> {
@@ -589,8 +608,10 @@ export class AdminPanelComponent implements OnInit {
     this.editLabel = "";
     this.editWords = [];
     this.editPistas = [];
+    this.editInfos = [];
     this.newWord = "";
     this.newPista = "";
+    this.newInfo = "";
     this.wordError.set(null);
     this.editMode.set("individual");
     this.bulkText.set("");
@@ -604,8 +625,10 @@ export class AdminPanelComponent implements OnInit {
     this.editLabel = cat.label;
     this.editWords = [...cat.words];
     this.editPistas = [...(cat.pistas || [])];
+    this.editInfos = [...(cat.infos || [])];
     this.newWord = "";
     this.newPista = "";
+    this.newInfo = "";
     this.wordError.set(null);
     this.editMode.set("individual");
     this.bulkText.set("");
@@ -629,6 +652,7 @@ export class AdminPanelComponent implements OnInit {
       .filter((word) => word.length > 0);
     this.editWords = words;
     this.editPistas = words.map((_, index) => this.editPistas[index] || "");
+    this.editInfos = words.map((_, index) => this.editInfos[index] || "");
   }
 
   addWord(): void {
@@ -641,8 +665,10 @@ export class AdminPanelComponent implements OnInit {
     this.wordError.set(null);
     this.editWords = [...this.editWords, word];
     this.editPistas = [...this.editPistas, this.newPista.trim()];
+    this.editInfos = [...this.editInfos, this.newInfo.trim()];
     this.newWord = "";
     this.newPista = "";
+    this.newInfo = "";
   }
 
   changeWord(index: number, value: string): void {
@@ -654,6 +680,8 @@ export class AdminPanelComponent implements OnInit {
 
   removeWord(index: number): void {
     this.editWords = this.editWords.filter((_, i) => i !== index);
+    this.editPistas = this.editPistas.filter((_, i) => i !== index);
+    this.editInfos = this.editInfos.filter((_, i) => i !== index);
     this.wordError.set(null);
   }
 
@@ -676,10 +704,12 @@ export class AdminPanelComponent implements OnInit {
       .map((word, index) => ({
         word: word.trim(),
         pista: (this.editPistas[index] ?? "").trim(),
+        info: (this.editInfos[index] ?? "").trim(),
       }))
       .filter((entry) => entry.word.length >= 2 && entry.word.length <= 40);
     const words = kept.map((entry) => entry.word);
     const pistas = kept.map((entry) => entry.pista);
+    const infos = kept.map((entry) => entry.info);
     if (
       !this.editLabel.trim() ||
       !words.length ||
@@ -698,6 +728,7 @@ export class AdminPanelComponent implements OnInit {
         this.editLabel.trim(),
         words,
         pistas,
+        infos,
       );
       if (ok) this.editingCategory.set(null);
     } else {
@@ -705,6 +736,7 @@ export class AdminPanelComponent implements OnInit {
         label: this.editLabel.trim(),
         words,
         pistas,
+        infos,
       });
       if (ok) this.editingCategory.set(null);
     }

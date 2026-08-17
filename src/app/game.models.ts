@@ -32,6 +32,7 @@ export interface RolePayload {
   word?: string;
   category: string;
   pista?: string;
+  info?: string;
   starter?: string;
   starterId?: string;
   impostors?: string[];

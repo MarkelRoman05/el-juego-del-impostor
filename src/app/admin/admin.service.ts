@@ -15,6 +15,7 @@ export interface AdminCategory {
   label: string;
   words: string[];
   pistas?: string[];
+  infos?: string[];
   custom: boolean;
 }
 
@@ -120,7 +121,7 @@ export class AdminService {
     }
   }
 
-  async createCategory(key: string, label: string, words: string[], pistas?: string[]): Promise<boolean> {
+  async createCategory(key: string, label: string, words: string[], pistas?: string[], infos?: string[]): Promise<boolean> {
     if (!this.token()) return false;
     this.loading.set(true);
     this.error.set(null);
@@ -131,7 +132,7 @@ export class AdminService {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.token()}`,
         },
-        body: JSON.stringify({ key, label, words, pistas }),
+        body: JSON.stringify({ key, label, words, pistas, infos }),
       });
       if (res.status === 401) {
         this.logout();
@@ -152,7 +153,7 @@ export class AdminService {
     }
   }
 
-  async updateCategory(key: string, updates: { label?: string; words?: string[]; pistas?: string[] }): Promise<boolean> {
+  async updateCategory(key: string, updates: { label?: string; words?: string[]; pistas?: string[]; infos?: string[] }): Promise<boolean> {
     if (!this.token()) return false;
     this.loading.set(true);
     this.error.set(null);

@@ -33,6 +33,9 @@
             <span class="observer-label">PALABRA</span>
             <div class="word">{{ game.role()?.word }}</div>
             <div class="category-chip">Categoría: {{ game.role()?.category }}</div>
+            @if (game.role()?.info) {
+              <div class="info-extra">{{ game.role()?.info }}</div>
+            }
             @if (game.role()?.pista) {
               <div class="pista-chip">Pista: {{ game.role()?.pista }}</div>
             }
@@ -68,8 +71,13 @@
             @else {
                 <div class="impostor-sub">Finge que la sabes. No tienes pista.</div>
             }
-        } @else {<div class="word">{{ game.role()?.word }}</div>
-            <div class="category-chip">Categoría: {{ game.role()?.category }}</div>}
+        } @else {            
+            <div class="word">{{ game.role()?.word }}</div>
+            @if (game.role()?.info) {
+              <div class="info-extra">{{ game.role()?.info }}</div>
+            }
+            <div class="category-chip">Categoría: {{ game.role()?.category }}</div>
+            }
         </div>
         <div class="hold-hint">Suelta para ocultar</div>
      </div>
