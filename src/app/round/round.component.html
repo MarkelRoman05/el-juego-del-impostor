@@ -59,7 +59,7 @@
             <div class="impostor-title">¡ERES EL IMPOSTOR!</div>
             @if (game.room()?.config?.impostorHint) {
                 @if (game.role()?.pista) {
-                    <div class="impostor-pista">Pista: {{ game.role()?.pista }}</div>
+                    <div class="impostor-pista"><b>Pista:</b> {{ game.role()?.pista }}</div>
                 } @else {
                     <div class="impostor-sub">No hay pista configurada</div>
                     @if (game.role()?.category) {<div class="category-chip">Categoría: {{ game.role()?.category }}</div>}
