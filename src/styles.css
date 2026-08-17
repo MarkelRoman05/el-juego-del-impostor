@@ -563,7 +563,7 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 8px;
   margin: 6px 0 4px;
 }
 .code-value {
@@ -572,6 +572,7 @@ textarea::placeholder {
     500 52px "DM Mono",
     monospace;
   letter-spacing: 10px;
+  padding-left: 5px;
 }
 .copy-icon {
   width: 44px;
@@ -624,6 +625,24 @@ textarea::placeholder {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
+}
+.lobby-card .brand-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+.lobby-card .brand-bottom .icon {
+  width: 1.8em;
+  height: 1.8em;
+  vertical-align: -0.4em;
+}
+.lobby-card .brand-bottom .impostor-bottom {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--ink);
 }
 .lobby-card .players-label {
   display: flex;

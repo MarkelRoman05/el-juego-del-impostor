@@ -77,5 +77,7 @@
                 menos 3 jugadores para empezar } @else if (!hasSelectedCategory() && isHost()) { Selecciona al menos una categoría para empezar... } @else { {{ connectedPlayers() }} jugadores listos }</p> <button
                     class="btn ghost" (click)="leave()"><impostor-icon name="logout" /> Salir de la
                     sala</button>
+        <div class="brand-bottom"><impostor-icon name="detective" />
+            <span class="impostor-bottom">El Impostor</span></div>
     </div>
 </section>
