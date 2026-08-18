@@ -128,6 +128,21 @@ app.post('/api/admin/categories', adminAuth, (req, res) => {
   res.json({ ok: true, categories: getAdminCategories() });
 });
 
+app.put('/api/admin/categories/order', adminAuth, (req, res) => {
+  const { order } = req.body || {};
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'Orden inválido' });
+  const valid = new Set([
+    ...Object.keys(CATEGORIES),
+    ...Object.keys(adminConfig.customCategories || {}),
+  ]);
+  adminConfig.categoryOrder = order
+    .filter((k) => typeof k === 'string')
+    .map((k) => sanitizeCategoryKey(k))
+    .filter((k) => valid.has(k));
+  saveAdminConfig(adminConfig);
+  res.json({ ok: true, categories: getAdminCategories() });
+});
+
 app.put('/api/admin/categories/:key', adminAuth, (req, res) => {
   const key = sanitizeCategoryKey(req.params.key);
   const isBuiltIn = Boolean(CATEGORIES[key] && key !== 'mezcla');
@@ -165,6 +180,9 @@ app.delete('/api/admin/categories/:key', adminAuth, (req, res) => {
     delete adminConfig.categoryOverrides[key];
   } else {
     delete adminConfig.customCategories[key];
+  }
+  if (Array.isArray(adminConfig.categoryOrder)) {
+    adminConfig.categoryOrder = adminConfig.categoryOrder.filter((k) => k !== key);
   }
   saveAdminConfig(adminConfig);
   for (const room of rooms.values()) {
@@ -232,7 +250,7 @@ function getAllCategories() {
   for (const [key, cat] of Object.entries(adminConfig.customCategories || {})) {
     custom[key] = { label: cat.label, custom: true };
   }
-  return { ...builtIn, ...custom };
+  return orderCategories({ ...builtIn, ...custom });
 }
 function getAdminCategories() {
   const categories = {};
@@ -250,7 +268,17 @@ function getAdminCategories() {
   for (const [key, cat] of Object.entries(adminConfig.customCategories || {})) {
      categories[key] = { label: cat.label, words: cleanCategoryWords(cat.words), pistas: cat.pistas, infos: cat.infos || [], custom: true };
   }
-  return categories;
+  return orderCategories(categories);
+}
+
+function orderCategories(categories) {
+  const order = adminConfig.categoryOrder || [];
+  const keys = Object.keys(categories);
+  const ordered = order.filter((k) => keys.includes(k));
+  const rest = keys.filter((k) => !order.includes(k));
+  const result = {};
+  for (const key of [...ordered, ...rest]) result[key] = categories[key];
+  return result;
 }
 
 /* ------------------------------------------------------------------ */

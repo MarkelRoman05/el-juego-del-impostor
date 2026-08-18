@@ -184,7 +184,6 @@ export class AdminService {
       this.loading.set(false);
     }
   }
-
   async deleteCategory(key: string): Promise<boolean> {
     if (!this.token()) return false;
     this.loading.set(true);
@@ -210,6 +209,34 @@ export class AdminService {
       return false;
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async reorderCategories(order: string[]): Promise<boolean> {
+    if (!this.token()) return false;
+    try {
+      const res = await fetch(`${this.API_BASE}/categories/order`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token()}`,
+        },
+        body: JSON.stringify({ order }),
+      });
+      if (res.status === 401) {
+        this.logout();
+        return false;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        this.categories.set(data.categories || {});
+        return true;
+      }
+      this.error.set(data.error || "Error al reordenar categorías");
+      return false;
+    } catch {
+      this.error.set("Error de conexión");
+      return false;
     }
   }
 }

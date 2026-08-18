@@ -83,10 +83,10 @@ import { IconComponent } from "../icon/icon.component";
                   <button
                     type="button"
                     class="mode-btn"
-                    [class.active]="editMode() === 'bulk'"
-                    (click)="setEditMode('bulk')"
+                    [class.active]="editMode() === 'json'"
+                    (click)="setEditMode('json')"
                   >
-                    Lista
+                    JSON
                   </button>
                 </div>
               </div>
@@ -173,15 +173,20 @@ import { IconComponent } from "../icon/icon.component";
                 <textarea
                   class="bulk-words"
                   [ngModel]="bulkText()"
-                  (ngModelChange)="applyBulk($event)"
+                  (ngModelChange)="applyJson($event)"
                   [disabled]="admin.loading()"
-                  rows="10"
-                  placeholder="Escribe las palabras separadas por comas"
-                  aria-label="Lista de palabras separadas por comas"
+                  rows="12"
+                  spellcheck="false"
+                  placeholder='[
+  { "word": "mango", "pista": "fruta", "info": "" },
+  { "word": "perro", "pista": "", "info": "doméstico" }
+]'
+                  aria-label="Lista de palabras en formato JSON"
                 ></textarea>
                 <p class="hint bulk-hint">
-                  Separa cada palabra con una coma. Las pistas se reinician al
-                  usar este modo.
+                  Cada entrada es un objeto con <code>word</code> (obligatoria),
+                  <code>pista</code> e <code>info</code> (opcionales, se pueden
+                  dejar vacías). También admite un array de textos simples.
                 </p>
               }
               @if (wordError()) {
@@ -222,9 +227,29 @@ import { IconComponent } from "../icon/icon.component";
                   Gestiona las categorías del juego o crea una propia.
                 </p>
               } @else {
+                <p class="hint reorder-hint">
+                  Arrastra para reordenar las categorías.
+                </p>
                 <div class="rooms-list">
-                  @for (entry of categoryEntries(); track entry.key) {
-                    <div class="room-item">
+                  @for (entry of categoryEntries(); track entry.key; let i = $index) {
+                    <div
+                      class="room-item"
+                      [class.drag-over]="dragIndex() !== null && dragIndex() !== i && dragTarget() === i"
+                      (dragover)="onCategoryDragOver($event, i)"
+                      (dragleave)="onCategoryDragLeave(i)"
+                      (drop)="onCategoryDrop(i)"
+                    >
+                      <button
+                        type="button"
+                        class="drag-handle"
+                        draggable="true"
+                        (dragstart)="onCategoryDragStart(i)"
+                        (dragend)="onCategoryDragEnd()"
+                        [attr.aria-label]="'Reordenar ' + entry.label"
+                        title="Arrastra para reordenar"
+                      >
+                        <impostor-icon name="grip" />
+                      </button>
                       <div class="room-info">
                         <span class="room-code">{{ entry.label }}</span>
                         <span class="room-players"
@@ -430,11 +455,43 @@ import { IconComponent } from "../icon/icon.component";
         border-radius: 10px;
         gap: 10px;
       }
+      .room-item.drag-over {
+        border-color: var(--violet);
+        box-shadow: 0 0 0 1px var(--violet);
+      }
+      .drag-handle {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        cursor: grab;
+        border-radius: 8px;
+        touch-action: none;
+      }
+      .drag-handle:hover {
+        color: var(--ink);
+        background: var(--line);
+      }
+      .drag-handle:active {
+        cursor: grabbing;
+      }
+      .reorder-hint {
+        margin: 0 0 8px;
+      }
       .room-info {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
         align-items: center;
+        flex: 1;
+        min-width: 0;
+        text-align: left;
       }
       .room-code {
         font-family: "DM Mono", monospace;
@@ -537,9 +594,11 @@ export class AdminPanelComponent implements OnInit {
   readonly router = inject(Router);
   readonly activeTab = signal<"categories" | "rooms">("categories");
   readonly editingCategory = signal<string | null>(null);
-  readonly editMode = signal<"individual" | "bulk">("individual");
+  readonly editMode = signal<"individual" | "json">("individual");
   readonly wordError = signal<string | null>(null);
   readonly bulkText = signal("");
+  readonly dragIndex = signal<number | null>(null);
+  readonly dragTarget = signal<number | null>(null);
 
   editLabel = "";
   editWords: string[] = [];
@@ -635,24 +694,60 @@ export class AdminPanelComponent implements OnInit {
     this.editingCategory.set(key);
   }
 
-  setEditMode(mode: "individual" | "bulk"): void {
+  setEditMode(mode: "individual" | "json"): void {
     if (mode === this.editMode()) return;
-    if (mode === "bulk") {
-      this.bulkText.set(this.editWords.join(", "));
+    if (mode === "json") {
+      this.bulkText.set(this.toJson());
     }
     this.editMode.set(mode);
   }
 
-  applyBulk(text: string): void {
+  private toJson(): string {
+    const items = this.editWords.map((word, index) => {
+      const entry: { word: string; pista?: string; info?: string } = {
+        word: word.trim(),
+      };
+      const pista = (this.editPistas[index] ?? "").trim();
+      const info = (this.editInfos[index] ?? "").trim();
+      if (pista) entry.pista = pista;
+      if (info) entry.info = info;
+      return entry;
+    });
+    return JSON.stringify(items, null, 2);
+  }
+
+  applyJson(text: string): void {
     this.bulkText.set(text);
     this.wordError.set(null);
-    const words = text
-      .split(",")
-      .map((word) => word.trim())
-      .filter((word) => word.length > 0);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      this.wordError.set("JSON inválido");
+      return;
+    }
+    if (!Array.isArray(parsed)) {
+      this.wordError.set("El JSON debe ser un array de palabras");
+      return;
+    }
+    const words: string[] = [];
+    const pistas: string[] = [];
+    const infos: string[] = [];
+    for (const item of parsed) {
+      if (typeof item === "string") {
+        words.push(item);
+        pistas.push("");
+        infos.push("");
+      } else if (item && typeof item === "object") {
+        const obj = item as Record<string, unknown>;
+        words.push(typeof obj["word"] === "string" ? obj["word"] : "");
+        pistas.push(typeof obj["pista"] === "string" ? obj["pista"] : "");
+        infos.push(typeof obj["info"] === "string" ? obj["info"] : "");
+      }
+    }
     this.editWords = words;
-    this.editPistas = words.map((_, index) => this.editPistas[index] || "");
-    this.editInfos = words.map((_, index) => this.editInfos[index] || "");
+    this.editPistas = pistas;
+    this.editInfos = infos;
   }
 
   addWord(): void {
@@ -713,7 +808,8 @@ export class AdminPanelComponent implements OnInit {
     if (
       !this.editLabel.trim() ||
       !words.length ||
-      this.hasDuplicateWords(words)
+      this.hasDuplicateWords(words) ||
+      !!this.wordError()
     )
       return;
     if (this.editingCategory() === "__new__") {
@@ -748,6 +844,46 @@ export class AdminPanelComponent implements OnInit {
     if (await this.confirm.ask(`¿Eliminar la categoría "${cat.label}"?`)) {
       await this.admin.deleteCategory(key);
     }
+  }
+
+  onCategoryDragStart(index: number): void {
+    this.dragIndex.set(index);
+  }
+
+  onCategoryDragEnd(): void {
+    this.dragIndex.set(null);
+    this.dragTarget.set(null);
+  }
+
+  onCategoryDragOver(event: DragEvent, index: number): void {
+    event.preventDefault();
+    this.dragTarget.set(index);
+  }
+
+  onCategoryDragLeave(index: number): void {
+    if (this.dragTarget() === index) this.dragTarget.set(null);
+  }
+
+  async onCategoryDrop(targetIndex: number): Promise<void> {
+    const from = this.dragIndex();
+    this.dragIndex.set(null);
+    this.dragTarget.set(null);
+    if (from === null || from === targetIndex) return;
+    const entries = this.categoryEntries();
+    if (
+      from < 0 ||
+      from >= entries.length ||
+      targetIndex < 0 ||
+      targetIndex >= entries.length
+    )
+      return;
+    const reordered = [...entries];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(targetIndex, 0, moved);
+    const ok = await this.admin.reorderCategories(
+      reordered.map((entry) => entry.key),
+    );
+    if (!ok) await this.admin.loadCategories();
   }
 
   logout(): void {

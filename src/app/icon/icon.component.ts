@@ -26,7 +26,8 @@ export type IconName =
   | "tick"
   | "cross"
   | "more"
-  | "flag";
+  | "flag"
+  | "grip";
 
 @Component({
   selector: "impostor-icon",
@@ -148,6 +149,14 @@ export type IconName =
         }
         @case ("flag") {
           <path d="M6 21V4M6 4h11l-2 3 2 3H6" />
+        }
+        @case ("grip") {
+          <circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none" />
         }
       }
     </svg>
