@@ -58,19 +58,24 @@
             </div>}
             @if (isHost() && game.room()?.config?.hostPlays === false) {
             <div class="exact-word-config">
+                <small style="display: flex; justify-content: center; text-align: center;">
+                    Vas a hostear la partida sin jugar, por lo que puedes elegir la palabra exacta que se usará en esta partida.
+                </small>
                 <label for="exact-word"><impostor-icon name="note" /> Palabra de esta partida</label>
                 <select id="catalog-word" aria-label="Elegir una palabra existente" [disabled]="!hasSelectedCategory()"
                     [ngModel]="selectedWord()" (ngModelChange)="setSelectedWord($event)">
-                    <option value="">@if (hasSelectedCategory()) { Elegir una palabra existente… } @else {
+                    <option value="">@if (hasSelectedCategory()) { Elige una palabra existente… } @else {
                         Selecciona una categoría… }</option>
                     @for (word of wordOptions(); track $index) {
-                    <option [value]="word">{{ word }}</option>
+                        <option [value]="word">{{ word }}</option>
                     }
                 </select>
                 <input id="exact-word" type="text" maxlength="40" [ngModel]="manualWord()"
                     (ngModelChange)="setManualWord($event)" placeholder="O escribe una palabra nueva"
                     autocomplete="off" />
-                <small>Si la dejas vacía, se elegirá una al azar.</small>
+                <small style="display: flex; justify-content: center; text-align: center;">
+                    Si no eliges o escribes una palabra, se elegirá una al azar.
+                </small>
             </div>
             }
         </div>

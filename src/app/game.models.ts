@@ -36,6 +36,7 @@ export interface RolePayload {
   starter?: string;
   starterId?: string;
   impostors?: string[];
+  startedAt?: number;
 }
 export interface RevealData {
   gameOver: boolean;
@@ -43,6 +44,7 @@ export interface RevealData {
   category?: string;
   info?: string;
   reason?: string;
+  durationMs?: number;
   impostors?: Array<{ id: string; name: string }>;
 }
 export interface Ack {

@@ -8,6 +8,7 @@
                 player.id !== game.me()) {<button class="more" (click)="openMenu(player)" [attr.aria-label]="'Opciones de ' + player.name"><impostor-icon name="more" /></button>}</span>}
         </div>
     </div>
+    <impostor-elapsed [ms]="game.elapsed()" class="elapsed-above-code" />
     <div class="code-box compact">
         <p class="eyebrow">CÓDIGO DE SALA: <span class="code-value">{{ game.room()?.code }}</span></p>
     </div>
@@ -34,10 +35,10 @@
         <div class="observer-secret">
             <span class="observer-label">PALABRA</span>
             <div class="word">{{ game.role()?.word }}</div>
-            <div class="category-chip">Categoría: {{ game.role()?.category }}</div>
             @if (game.role()?.info) {
               <div class="info-extra">{{ game.role()?.info }}</div>
             }
+            <div class="category-chip">Categoría: {{ game.role()?.category }}</div>
             @if (game.role()?.pista) {
               <div class="pista-chip">Pista: {{ game.role()?.pista }}</div>
             }
@@ -46,6 +47,7 @@
             <span class="observer-label">IMPOSTOR</span>
             <strong>{{ game.role()?.impostors?.join(', ') }}</strong>
         </div>
+        @if (isHost()) {<button class="btn secondary end-round" (click)="finishGame()"><impostor-icon name="detective" /> Impostor encontrado - Finalizar sesión</button>}
     </div>
     } @else {
     <div class="hold-card" role="button" tabindex="0"

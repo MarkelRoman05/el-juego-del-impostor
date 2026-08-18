@@ -10,11 +10,12 @@ import { GameService } from "../game.service";
 import { ConfirmService } from "../confirm/confirm.service";
 import { MoreMenuService } from "../more-menu/more-menu.service";
 import { IconComponent } from "../icon/icon.component";
+import { ElapsedComponent } from "../elapsed/elapsed.component";
 
 @Component({
   selector: "impostor-round",
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [CommonModule, IconComponent, ElapsedComponent],
   templateUrl: "./round.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

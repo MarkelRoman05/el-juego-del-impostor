@@ -3,9 +3,11 @@
   <div class="more-sheet" [class.show]="menu.open()" (click)="$event.stopPropagation()"
     (transitionend)="menu.closed()" role="menu" aria-modal="true" aria-label="Opciones de {{ player.name }}">
     <p class="more-title">{{ player.name }}</p>
+    @if (!(game.phase() === 'round' && game.room()?.config?.hostPlays === false)) {
     <button class="more-action" type="button" role="menuitem" (click)="makeHost()">
       <impostor-icon name="flag" /> Hacer host de la sala
     </button>
+    }
     <button class="more-action danger" type="button" role="menuitem" (click)="kick()">
       <impostor-icon name="cross" /> Expulsar de la sala
     </button>

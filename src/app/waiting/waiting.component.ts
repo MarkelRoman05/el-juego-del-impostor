@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { GameService } from "../game.service";
 import { IconComponent } from "../icon/icon.component";
+import { ElapsedComponent } from "../elapsed/elapsed.component";
 
 @Component({
   selector: "impostor-waiting",
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [CommonModule, IconComponent, ElapsedComponent],
   templateUrl: "./waiting.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -1,4 +1,4 @@
-import { Injectable, signal } from "@angular/core";
+import { computed, Injectable, signal } from "@angular/core";
 import { io, Socket } from "socket.io-client";
 import { Ack, Phase, RevealData, RolePayload, Room } from "./game.models";
 
@@ -13,6 +13,12 @@ export class GameService {
   readonly reveal = signal<RevealData | null>(null);
   readonly wordOptions = signal<string[]>([]);
   readonly starter = signal<{ name: string; id: string } | null>(null);
+  readonly roundStartedAt = signal<number | null>(null);
+  readonly now = signal(Date.now());
+  readonly elapsed = computed(() => {
+    const start = this.roundStartedAt();
+    return start == null ? null : Math.max(0, this.now() - start);
+  });
   readonly connected = signal(false);
   readonly reconnecting = signal(false);
   readonly toast = signal("");
@@ -23,6 +29,7 @@ export class GameService {
   private rejoinTimeout: ReturnType<typeof setTimeout> | undefined;
   private rejoinRetry: ReturnType<typeof setTimeout> | undefined;
   private rejoinRequestId = 0;
+  private ticker: ReturnType<typeof setInterval> | undefined;
   private everConnected = false;
   private restoringSession = false;
   private intentionalDisconnect = false;
@@ -81,15 +88,20 @@ export class GameService {
         phase,
         starter,
         starterId,
+        startedAt,
       }: {
         phase: string;
         starter?: string;
         starterId?: string;
+        startedAt?: number;
       }) => {
          if (phase === "round") {
            this.reveal.set(null);
            this.starter.set(starter && starterId ? { name: starter, id: starterId } : null);
-        }
+           if (startedAt) this.startTimer(startedAt);
+         } else {
+           this.stopTimer();
+         }
         this.phase.set(this.phaseFor(phase));
         if (phase === "lobby") {
           this.role.set(null);
@@ -104,10 +116,15 @@ export class GameService {
       if (role.starter && role.starterId) {
         this.starter.set({ name: role.starter, id: role.starterId });
       }
+      if (role.startedAt) this.startTimer(role.startedAt);
       this.phase.set("round");
+    });
+    this.socket.on("round:clock", ({ startedAt }: { startedAt?: number }) => {
+      if (startedAt) this.startTimer(startedAt);
     });
     this.socket.on("word:options", (words: string[]) => this.wordOptions.set(words));
     this.socket.on("game:over", (data: RevealData) => {
+      this.stopTimer();
       this.reveal.set(data);
       this.phase.set("gameover");
     });
@@ -250,6 +267,20 @@ export class GameService {
       ? (value as Phase)
       : "waiting";
   }
+  private startTimer(startedAt: number): void {
+    this.roundStartedAt.set(startedAt);
+    this.now.set(Date.now());
+    if (!this.ticker) {
+      this.ticker = setInterval(() => this.now.set(Date.now()), 1000);
+    }
+  }
+  private stopTimer(): void {
+    this.roundStartedAt.set(null);
+    if (this.ticker) {
+      clearInterval(this.ticker);
+      this.ticker = undefined;
+    }
+  }
   private notifyPlayerChanges(previous: Room, current: Room): void {
     const previousPlayers = new Map(previous.players.map((player) => [player.name, player]));
     const currentPlayers = new Map(current.players.map((player) => [player.name, player]));
@@ -370,6 +401,7 @@ export class GameService {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
   private reset(): void {
+    this.stopTimer();
     this.phase.set("home");
     if (location.search) history.replaceState(null, "", "/");
     this.room.set(null);

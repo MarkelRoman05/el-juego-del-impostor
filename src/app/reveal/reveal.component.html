@@ -12,6 +12,7 @@
         <p class="eyebrow">CÓDIGO DE SALA: <span class="code-value">{{ game.room()?.code }}</span></p>
     </div>
     <h2><impostor-icon name="detective" /> Fin de la partida</h2>
+    <impostor-elapsed [ms]="game.reveal()?.durationMs ?? null" class="elapsed-reveal" />
     <div class="reveal-impostor">
         <div class="impostor-emoji"><impostor-icon name="detective" /></div>
         <div class="who">{{ (reveal.impostors ?? []) | names }}</div>

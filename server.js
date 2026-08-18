@@ -422,7 +422,11 @@ function scheduleRoomCleanup(room) {
     if (!rooms.has(room.code)) return;
     const age = Date.now() - room.lastActivity;
     const anyConnected = [...room.players.values()].some((p) => p.connected);
-    if ((!anyConnected && age > EMPTY_ROOM_TTL_MS) || age > ROOM_MAX_AGE_MS) {
+    // Si todos se desconectan en mitad de una ronda (p. ej. apagan el móvil
+    // tras ver la palabra), la sala no se borra: el reloj de la partida sigue
+    // corriendo anclado a startedAt hasta que alguien se reconecte.
+    const roundInProgressEmpty = room.phase === 'round' && !anyConnected;
+    if (!roundInProgressEmpty && ((!anyConnected && age > EMPTY_ROOM_TTL_MS) || age > ROOM_MAX_AGE_MS)) {
       rooms.delete(room.code);
     } else {
       scheduleRoomCleanup(room);
@@ -599,8 +603,8 @@ function startRound(room) {
 
   for (const p of connected) {
     const payload = impostorIds.has(p.id)
-       ? { role: 'impostor', category: room.config.impostorHint ? wordCategory : '', starter: starter.name, starterId: starter.id, pista: room.config.impostorHint ? getPista(word) : '', info: '' }
-       : { role: 'player', word, category: wordCategory, starter: starter.name, starterId: starter.id, pista: getPista(word), info: getInfo(word) };
+      ? { role: 'impostor', category: room.config.impostorHint ? wordCategory : '', starter: starter.name, starterId: starter.id, pista: room.config.impostorHint ? getPista(word) : '', info: '', startedAt: room.startedAt }
+      : { role: 'player', word, category: wordCategory, starter: starter.name, starterId: starter.id, pista: getPista(word), info: getInfo(word), startedAt: room.startedAt };
     room.roleByPlayer.set(p.id, payload);
     const sock = io.sockets.sockets.get(p.id);
     if (sock) sock.emit('round:started', payload);
@@ -615,6 +619,7 @@ function startRound(room) {
       starterId: starter.id,
       info: getInfo(word),
       impostors: [...impostorIds].map((id) => room.players.get(id)?.name || '?'),
+      startedAt: room.startedAt,
     };
     room.roleByPlayer.set(host.id, payload);
     io.sockets.sockets.get(host.id)?.emit('round:started', payload);
@@ -632,6 +637,7 @@ function finishGame(room) {
     word: room.word,
     category: room.categoryLabel,
     info: getInfoFor(room.config.category, room.word),
+    durationMs: Date.now() - room.startedAt,
     impostors: [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' })),
   };
   room.revealData = result;
@@ -718,9 +724,14 @@ io.on('connection', (socket) => {
 
   function replayRoundState(room, sock) {
     const pid = sock.data.playerId;
-    if (room.waitingIds.has(pid)) return; // los que esperan no tienen rol en la ronda actual
+    if (room.waitingIds.has(pid)) {
+      // Los que esperan no tienen rol en la ronda actual, pero ven el reloj
+      // de la partida en su vista de espera.
+      if (room.phase === 'round') sock.emit('round:clock', { startedAt: room.startedAt });
+      return;
+    }
     if (room.phase === 'round') {
-      if (room.starterName) sock.emit('phase:changed', { phase: 'round', starter: room.starterName, starterId: room.starterId });
+      if (room.starterName) sock.emit('phase:changed', { phase: 'round', starter: room.starterName, starterId: room.starterId, startedAt: room.startedAt });
       const role = room.roleByPlayer.get(pid);
       if (role) sock.emit('round:started', role);
     } else if (room.phase === 'gameover' && room.revealData) {
@@ -939,6 +950,7 @@ io.on('connection', (socket) => {
   socket.on('lobby:setHost', ({ playerId } = {}, ack) => {
     const room = getRoomOf(socket);
     if (!room || !isHost(socket, room)) return ackErr(ack, 'Solo el anfitrión puede cambiar de anfitrión');
+    if (room.phase === 'round' && room.config.hostPlays === false) return ackErr(ack, 'No se puede cambiar de anfitrión durante la ronda si el anfitrión no juega');
     if (!playerId || !room.players.has(playerId)) return ackErr(ack, 'Jugador no encontrado');
     if (playerId === room.hostId) return ackOk(ack);
     room.hostId = playerId;

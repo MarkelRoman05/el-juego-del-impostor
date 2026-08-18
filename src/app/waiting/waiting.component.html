@@ -6,6 +6,7 @@
                     [class.off]="!player.connected"></i>{{ player.name }} @if (player.id === game.room()?.hostId) {<b
                         class="badge">HOST</b>} @if (player.waiting) {<b class="badge wait">ESPERA</b>}</span>}</div>
     </div>
+    <impostor-elapsed [ms]="game.elapsed()" class="elapsed-above-code" />
     <div class="code-box compact">
         <p class="eyebrow">CÓDIGO DE SALA: <span class="code-value">{{ game.room()?.code }}</span></p>
     </div>

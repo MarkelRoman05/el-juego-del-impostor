@@ -25,6 +25,7 @@ export type IconName =
   | "question"
   | "tick"
   | "cross"
+  | "clock"
   | "more"
   | "flag"
   | "grip";
@@ -141,6 +142,12 @@ export type IconName =
           <circle cx="12" cy="12" r="9" />
           <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.9.6-1.5 1.3-1.5 2.2" />
           <circle cx="12" cy="16.5" r="0.7" fill="currentColor" />
+        }
+        @case ("clock") {
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M12 7.4V12l3.4 2" />
+          <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+          <path d="M12 3.2v1.6M12 19.2v1.6M3.2 12h1.6M19.2 12h1.6" />
         }
         @case ("more") {
           <circle cx="12" cy="5" r="1.6" fill="currentColor" stroke="none" />

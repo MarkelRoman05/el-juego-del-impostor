@@ -1,0 +1,27 @@
+const { io } = require('socket.io-client');
+const URL = process.env.URL;
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+const log = (...a) => { console.log(...a); };
+setTimeout(() => { log('TIMEOUT'); process.exit(1); }, 12000);
+(async () => {
+  const host = io(URL, { transports: ['websocket'], forceNew: true });
+  let code, clockStartedAt;
+  host.on('room:joined', (d) => { code = d.room.code; });
+  await new Promise((res, rej) => { host.on('connect', res); host.on('connect_error', rej); });
+  host.emit('room:create', { name: 'H' });
+  await wait(250);
+  const join = (name) => { const s = io(URL, { transports: ['websocket'], forceNew: true }); return new Promise(res => s.on('connect', () => { s.emit('room:join', { code, name }); setTimeout(() => res(s), 150); })); };
+  await join('P2'); await join('P3');
+  await wait(200);
+  host.emit('config:set', { category: 'animales' });
+  await wait(150);
+  host.emit('round:start');
+  await wait(300);
+  const w = io(URL, { transports: ['websocket'], forceNew: true });
+  await new Promise(res => w.on('connect', () => w.emit('room:join', { code, name: 'W' })));
+  w.on('round:clock', (d) => { clockStartedAt = d.startedAt; });
+  await wait(400);
+  log('waiting player got round:clock startedAt:', clockStartedAt);
+  log('PASS:', typeof clockStartedAt === 'number');
+  process.exit(0);
+})().catch(e => { console.error('ERR', e.message); process.exit(1); });
