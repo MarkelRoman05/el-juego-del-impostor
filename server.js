@@ -620,6 +620,7 @@ function startRound(room) {
       info: getInfo(word),
       impostors: [...impostorIds].map((id) => room.players.get(id)?.name || '?'),
       startedAt: room.startedAt,
+      observe: true,
     };
     room.roleByPlayer.set(host.id, payload);
     io.sockets.sockets.get(host.id)?.emit('round:started', payload);

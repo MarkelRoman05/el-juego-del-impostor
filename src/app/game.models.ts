@@ -37,6 +37,7 @@ export interface RolePayload {
   starterId?: string;
   impostors?: string[];
   startedAt?: number;
+  observe?: boolean;
 }
 export interface RevealData {
   gameOver: boolean;

@@ -257,9 +257,7 @@ export class GameService {
     return Boolean(me && this.room()?.players.find((player) => player.id === me)?.eliminated);
   }
   isObserver(): boolean {
-    return this.isEliminated() || (
-      this.me() === this.room()?.hostId && this.room()?.config.hostPlays === false
-    );
+    return this.isEliminated() || Boolean(this.role()?.observe);
   }
 
   private phaseFor(value: string): Phase {
