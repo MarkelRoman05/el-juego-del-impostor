@@ -41,6 +41,7 @@ export interface RevealData {
   gameOver: boolean;
   word?: string;
   category?: string;
+  info?: string;
   reason?: string;
   impostors?: Array<{ id: string; name: string }>;
 }

@@ -459,6 +459,41 @@ function categoryLabelForWord(room, word) {
     return custom?.label || adminConfig.categoryOverrides?.[key]?.label || CATEGORIES[key]?.label || key;
   }).filter(Boolean).join(' + ');
 }
+function resolveCategoryKey(categoryConfig, word) {
+  return categoryKeys(categoryConfig).find((k) => {
+    if (k === 'personalizadas' || k === 'mezcla') return false;
+    const custom = adminConfig.customCategories?.[k];
+    const words = custom?.words || adminConfig.categoryOverrides?.[k]?.words || CATEGORIES[k]?.words || [];
+    return words.includes(word);
+  });
+}
+function getPistaFor(categoryConfig, word) {
+  const key = resolveCategoryKey(categoryConfig, word);
+  if (!key) return '';
+  const custom = adminConfig.customCategories?.[key];
+  const override = adminConfig.categoryOverrides?.[key];
+  const catWords = custom?.words || override?.words || CATEGORIES[key]?.words || [];
+  const catPistas = custom?.pistas || override?.pistas;
+  if (Array.isArray(catPistas)) {
+    const idx = catWords.indexOf(word);
+    if (idx >= 0 && catPistas[idx]) return catPistas[idx];
+  }
+  const pistaObj = PISTAS[key];
+  return (pistaObj && pistaObj[word]) || '';
+}
+function getInfoFor(categoryConfig, word) {
+  const key = resolveCategoryKey(categoryConfig, word);
+  if (!key) return '';
+  const custom = adminConfig.customCategories?.[key];
+  const override = adminConfig.categoryOverrides?.[key];
+  const catWords = custom?.words || override?.words || CATEGORIES[key]?.words || [];
+  const catInfos = custom?.infos || override?.infos;
+  if (Array.isArray(catInfos)) {
+    const idx = catWords.indexOf(word);
+    if (idx >= 0 && catInfos[idx]) return catInfos[idx];
+  }
+  return '';
+}
 
 function pickWord(room) {
   const pool = getWordPool(room);
@@ -531,44 +566,8 @@ function startRound(room) {
   room.roleByPlayer = new Map();
   room.startedAt = Date.now();
 
-  const getPista = (word) => {
-    const key = categoryKeys(room.config.category).find((k) => {
-      if (k === 'personalizadas' || k === 'mezcla') return false;
-      const custom = adminConfig.customCategories?.[k];
-      const words = custom?.words || adminConfig.categoryOverrides?.[k]?.words || CATEGORIES[k]?.words || [];
-      return words.includes(word);
-    });
-    if (!key) return '';
-    const custom = adminConfig.customCategories?.[key];
-    const override = adminConfig.categoryOverrides?.[key];
-    const catWords = custom?.words || override?.words || CATEGORIES[key]?.words || [];
-    const catPistas = custom?.pistas || override?.pistas;
-    if (Array.isArray(catPistas)) {
-      const idx = catWords.indexOf(word);
-      if (idx >= 0 && catPistas[idx]) return catPistas[idx];
-    }
-    const pistaObj = PISTAS[key];
-    return (pistaObj && pistaObj[word]) || '';
-  };
-
-  const getInfo = (word) => {
-    const key = categoryKeys(room.config.category).find((k) => {
-      if (k === 'personalizadas' || k === 'mezcla') return false;
-      const custom = adminConfig.customCategories?.[k];
-      const words = custom?.words || adminConfig.categoryOverrides?.[k]?.words || CATEGORIES[k]?.words || [];
-      return words.includes(word);
-    });
-    if (!key) return '';
-    const custom = adminConfig.customCategories?.[key];
-    const override = adminConfig.categoryOverrides?.[key];
-    const catWords = custom?.words || override?.words || CATEGORIES[key]?.words || [];
-    const catInfos = custom?.infos || override?.infos;
-    if (Array.isArray(catInfos)) {
-      const idx = catWords.indexOf(word);
-      if (idx >= 0 && catInfos[idx]) return catInfos[idx];
-    }
-    return '';
-  };
+  const getPista = (word) => getPistaFor(room.config.category, word);
+  const getInfo = (word) => getInfoFor(room.config.category, word);
 
   for (const p of connected) {
     const payload = impostorIds.has(p.id)
@@ -604,6 +603,7 @@ function finishGame(room) {
     gameOver: true,
     word: room.word,
     category: room.categoryLabel,
+    info: getInfoFor(room.config.category, room.word),
     impostors: [...(room.impostorIds || [])].map((id) => ({ id, name: playersById[id]?.name ?? '?' })),
   };
   room.revealData = result;

@@ -19,6 +19,9 @@
         <div class="word-box">
             <p class="eyebrow">LA PALABRA ERA</p>
             <div class="word">{{ reveal.word }}</div>
+            @if (reveal.info) {
+                <p class="info-extra">{{ reveal.info }}</p>
+            }
             <p class="category">Categoría: {{ reveal.category }}</p>
         </div>
     </div>
