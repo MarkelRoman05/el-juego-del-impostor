@@ -740,7 +740,7 @@ io.on('connection', (socket) => {
     }
   }
 
-  function leaveRoom(endIfEmpty = false) {
+  function leaveRoom(remove = false) {
     const room = getRoomOf(socket);
     const pid = socket.data.playerId;
     socket.data.roomCode = null;
@@ -748,19 +748,27 @@ io.on('connection', (socket) => {
     if (!room || !pid) return;
     socket.leave(room.code); // al salirse no debe seguir recibiendo eventos de la sala
     const p = room.players.get(pid);
-    if (p) {
-      p.connected = false;
-      if (room.hostId === pid) {
-        const next = [...room.players.values()].find((x) => x.connected && !room.waitingIds.has(x.id));
-        room.hostId = next ? next.id : null;
-      }
-      room.lastActivity = Date.now();
-      if (endIfEmpty && ![...room.players.values()].some((player) => player.connected)) {
-        endRoom(room);
-        return;
-      }
-      broadcastLobby(room);
+    if (!p) return;
+    if (room.hostId === pid) {
+      const next = [...room.players.entries()]
+        .filter(([id]) => id !== pid)
+        .find(([, x]) => x.connected && !room.waitingIds.has(x.id));
+      room.hostId = next ? next[0] : null;
     }
+    if (remove) {
+      // Salida voluntaria: se elimina del todo de la sala en vez de dejarlo en standby.
+      room.players.delete(pid);
+      room.waitingIds.delete(pid);
+    } else {
+      // Desconexión real: se conserva para permitir reconexión.
+      p.connected = false;
+    }
+    room.lastActivity = Date.now();
+    if (remove && ![...room.players.values()].some((player) => player.connected)) {
+      endRoom(room);
+      return;
+    }
+    broadcastLobby(room);
   }
 
   /* ---- creación y unión ---- */
