@@ -1057,7 +1057,7 @@ textarea::placeholder {
   display: block;
 }
 .word {
-  font-size: clamp(26px, 7vw, 36px);
+  font-size: clamp(38px, 7vw, 35px);
   font-weight: 700;
   line-height: 1.2;
   overflow-wrap: anywhere;
