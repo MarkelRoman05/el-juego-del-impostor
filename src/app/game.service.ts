@@ -241,7 +241,7 @@ export class GameService {
     const code = this.room()?.code ?? "";
     navigator.clipboard
       ?.writeText(code)
-      .then(() => this.notify("Código copiado"))
+      .then(() => this.notify("Código de sala copiado"))
       .catch(() => window.prompt("Copia el código:", code));
   }
   notify(message: string): void {

@@ -56,20 +56,21 @@ export class HomeComponent {
       this.installPrompt = null;
       return;
     }
-    this.game.notify("Usa Compartir y elige «Añadir a pantalla de inicio»");
   }
 
   create(): void {
     if (!this.name.trim())
-      return this.game.notify("Escribe tu nombre para crear una partida");
+      return this.game.notify("ERROR: Escribe un nombre para crear una partida");
     this.game.create(this.name.trim());
   }
 
   join(): void {
     if (!this.name.trim())
-      return this.game.notify("Escribe tu nombre para unirte");
+      return this.game.notify("ERROR: Escribe tu nombre para unirte");
+    if (!this.code.trim())
+      return this.game.notify("ERROR: Escribe un código de sala");
     if (!/^[A-Z0-9]{4}$/.test(this.code))
-      return this.game.notify("El código tiene 4 letras o números");
+      return this.game.notify("ERROR: El código tiene 4 letras o números");
     this.game.join(this.code, this.name.trim());
   }
 
