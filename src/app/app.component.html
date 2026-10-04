@@ -18,7 +18,7 @@
   </button>
   }
 </main>
-@if (game.toast()) { <div class="toast" role="status">{{ game.toast() }}</div> }
+@if (game.toast()) { <div class="toast" role="status" [innerHTML]="toastHtml()"></div> }
 @if (game.reconnecting()) { <div class="conn-overlay">
   <div class="big-emoji"><impostor-icon name="plug" /></div>
   <p>Reconectando…</p>

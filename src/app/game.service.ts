@@ -149,7 +149,7 @@ export class GameService {
       this.notify("La partida ha terminado");
     });
     this.socket.on("host:changed", ({ name }: { name: string }) => {
-      this.notify(`${name} es ahora el host de la sala`);
+      this.notify(`<b>${name}</b> es ahora el host de la sala`);
     });
     window.addEventListener("online", this.recoverConnection);
     window.addEventListener("pageshow", this.recoverConnection);
@@ -286,15 +286,15 @@ export class GameService {
     for (const [name, player] of currentPlayers) {
       const oldPlayer = previousPlayers.get(name);
       if (!oldPlayer) {
-        this.notify(`${name} se ha unido a la sala`);
+        this.notify(`<b>${name}</b> se ha unido a la sala`);
       } else if (!oldPlayer.connected && player.connected) {
-        this.notify(`${name} se ha reconectado`);
+        this.notify(`<b>${name}</b> se ha reconectado`);
       }
     }
     for (const [name, player] of previousPlayers) {
       const currentPlayer = currentPlayers.get(name);
       if (player.connected && (!currentPlayer || !currentPlayer.connected)) {
-        this.notify(`${name} ha dejado la sala`);
+        this.notify(`<b>${name}</b> ha dejado la sala`);
       }
     }
   }

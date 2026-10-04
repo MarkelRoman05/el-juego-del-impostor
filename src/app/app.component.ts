@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal, DestroyRef } from "@angular/core";
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal, DestroyRef, computed } from "@angular/core";
+import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
 import { Router, RouterOutlet, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
 import { GameService } from "./game.service";
@@ -35,7 +36,14 @@ export class AppComponent implements OnInit {
   readonly router = inject(Router);
   readonly destroyRef = inject(DestroyRef);
   readonly confirm = inject(ConfirmService);
+  readonly sanitizer = inject(DomSanitizer);
   readonly isAdmin = signal(false);
+
+  readonly toastHtml = computed(() => {
+    const message = this.game.toast();
+    if (!message) return null;
+    return this.sanitizer.bypassSecurityTrustHtml(message) as SafeHtml;
+  });
 
   ngOnInit(): void {
     this.checkRoute(this.router.url);
