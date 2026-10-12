@@ -196,6 +196,41 @@ textarea::placeholder {
   flex-direction: column;
   gap: 13px;
 }
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.code-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.12s ease;
+}
+.code-clear .icon {
+  width: 1em;
+  height: 1em;
+}
+.code-clear:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.code-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .code-label {
   font-weight: 600;
   font-size: 13px;
@@ -293,6 +328,36 @@ textarea::placeholder {
 }
 .name-input {
   padding: 14px 11px;
+}
+.name-wrapper {
+  position: relative;
+}
+.btn-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.btn-clear:hover {
+  color: var(--ink);
+  transition: color 0.15s ease;
+}
+.name-wrapper:hover .btn-clear {
+  opacity: 0.5;
+}
+.name-wrapper:focus-within .btn-clear,
+.name-wrapper.has-value .btn-clear {
+  opacity: 1;
 }
 .play-create-btn {
   font-size: 13px;

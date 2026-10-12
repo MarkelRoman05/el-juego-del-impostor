@@ -9,13 +9,25 @@
     <h1>El Impostor</h1>
   </header>
   <div class="card form-card">
-    <label for="name">Nombre</label><input id="name" class="name-input" [(ngModel)]="name" maxlength="20"
-      placeholder="Escribe un nombre..." autocomplete="off" (keydown.enter)="create()">
+    <label for="name">Nombre</label>
+    <div class="name-wrapper">
+      <input id="name" class="name-input" [(ngModel)]="name" maxlength="20" placeholder="Escribe un nombre..."
+        autocomplete="off" (keydown.enter)="create()">
+      @if (name) {
+      <button type="button" class="btn-clear" (click)="name = ''" aria-label="Borrar nombre">
+        <impostor-icon name="cross" /></button>
+      }
+    </div>
     <button class="btn primary big play-create-btn" (click)="create()"><impostor-icon name="game" /> Crear
       partida</button>
     <div class="divider"><span>o únete con un código</span></div>
     <div class="join-block">
-      <label for="code" class="code-label">Código de sala</label>
+      <div class="code-head">
+        <label for="code" class="code-label">Código de sala</label>
+        <button class="code-clear" type="button" (click)="code = ''" [disabled]="!code" aria-label="Limpiar código">
+          <impostor-icon name="cross" /> Borrar código
+        </button>
+      </div>
       <div class="join-row">
         <div class="code-field">
           <div class="code-slots">
@@ -29,12 +41,12 @@
             maxlength="4" (focus)="codeFocused.set(true)" (blur)="codeFocused.set(false)" aria-label="Código de sala"
             autocomplete="off" (keydown.enter)="join()">
         </div>
-        <button class="btn secondary" (click)="join()">Unirse</button>
+        <button class="btn secondary" (click)="join()"><impostor-icon name="logout" /> Unirse</button>
       </div>
     </div>
   </div>
   <p class="hint footer-note">3+ jugadores · Sin registro</p>
-  
+
   @if (showInstall()) {
   <button class="btn ghost small install-btn" (click)="install()"><impostor-icon name="download" />
     Instalar app en el navegador</button>
@@ -48,7 +60,8 @@
     aria-label="Ayuda">
     <div class="modal-heading">
       <h2>¿Cómo se juega?</h2>
-      <button class="modal-close" type="button" aria-label="Cerrar" (click)="showHelp.set(false)"><impostor-icon name="cross" /></button>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="showHelp.set(false)"><impostor-icon
+          name="cross" /></button>
     </div>
     <div class="help-body">
       <section class="help-section">
@@ -60,7 +73,8 @@
         <p>Pulsa <strong>Crear partida</strong>. Serás el anfitrión y obtendrás un código de 4 letras o números para
           compartir con tus amigos.</p>
         <p>Si alguien ya creó una, pídele que te comparta o te diga el código de 4 caracteres. Introdúcelo y pulsa
-          <strong>Unirse</strong>.</p>
+          <strong>Unirse</strong>.
+        </p>
         <p><b>Nota: </b>Si el anfitrión no quiere jugar, puede crear una partida y hostearla él sin jugar.</p>
       </section>
       <section class="help-section">
@@ -70,9 +84,11 @@
       </section>
       <section class="help-section">
         <h3>4. Juega y descubre al impostor</h3>
-        <p>Turno a turno, cada jugador dice una palabra o pista relacionada sin revelarla. Empieza hablando quien se indique arriba.
+        <p>Turno a turno, cada jugador dice una palabra o pista relacionada sin revelarla. Empieza hablando quien se
+          indique arriba.
           Observa, debate y al final de cada ronda, votáis quién creéis que es el impostor.
-          Si no lo descubrís, seguís jugando hasta que el impostor acierte la palabra o se le descubra. Una vez acabada la ronda,
+          Si no lo descubrís, seguís jugando hasta que el impostor acierte la palabra o se le descubra. Una vez acabada
+          la ronda,
           el anfitrión puede iniciar otra ronda con la misma sala y jugadores.
         </p>
       </section>
